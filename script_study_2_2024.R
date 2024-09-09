@@ -1,16 +1,27 @@
-##################################load pacakges
-library(haven)
-library(dplyr) 
-library(rio)
-library(tidyverse)
-library(corrr) 
-library(sjlabelled)
-library(Rfast)
-library(lme4)
-library(lmerTest)
-library(cowplot)
-library(foreign)
-library(emmeans)
+##################################install and load pacakges
+
+# List of required packages
+packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
+              "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans")
+
+# Function to install a package if it is missing
+install_if_missing <- function(p) {
+  if (!requireNamespace(p, quietly = TRUE)) {
+    install.packages(p, dependencies = TRUE)
+  }
+}
+
+# Function to load a package
+load_package <- function(p) {
+  library(p, character.only = TRUE)
+}
+
+# Install all missing packages
+lapply(packages, install_if_missing)
+
+# Load all required packages
+lapply(packages, load_package)
+
 ###################################import data
 
 # raw data
@@ -113,18 +124,19 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 #
 #
 ##filter if party is not measured in liking (i.e., party must be 1-9, if belief system items do not have more than 2 missing, AND if there are at least 20 party supporters for each group)
-CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs<2) # should be 2 or more i.e.,  <3
+CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs<2) # should be 2 or more i.e.,  <3 ### TOMAS: should me more like if below letter L? 
 #
 CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>% 
   group_by(country, party) %>% 
   filter(n() >20) %>% 
   ungroup()
 
-                 #  
+                 # get number of cases per country 
                    CSES4_SAMPLE %>% 
                      group_by(country) %>% 
                      summarise(n = n())
                    
+				   # get number of cases per country starting with smallest cases per country
                    CSES4_SAMPLE %>% 
                       count(country) %>% 
                      arrange(n)
@@ -140,13 +152,12 @@ CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>%
 #write.dta(CSES4_SAMPLE,"Data/Main survey/CSES4_SAMPLE.dta")
 
 
-# check missingness
+					# check missingness
                       CSES4_SAMPLE %>% 
                         group_by(country,party) %>% 
                         summarise(n = n())
                       
                       table(CSES4_SAMPLE$country, CSES4_SAMPLE$party)  
-                      
                       table(CSES4_SAMPLE$na_bs)
                       
 
@@ -222,10 +233,16 @@ CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>%
 #              
              
 ## now organize output by party supported.
+#### ALRIGHT, SO THIS IS THE BIT OF CODE THAT NEEDS TO BE ADJUSTED.
 
-newdf<- BIG3
+#head(newdf)
+#head(BIG3)
+#newdf <- BIG3 ## ask Felicity about this ##
 
-allsimdata1 <- merge(x = newdf,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id"  ,all.x=TRUE)
+head(newdf)
+allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE)
+head(allsimdata1)
+
 allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE)
 
 # filter to selct only those who support a party in aff_pol1-4
@@ -249,7 +266,7 @@ finalsimdata <- finalsimdata1 %>%
 
 # now  make a variable that takes the pps mean over ingroup matches and outgroup matches
 
-logic <- aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
+logic <-   aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
 content <- aggregate(content_sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
 
 logic_cont <- merge(logic, content, by = c('x','target'))
