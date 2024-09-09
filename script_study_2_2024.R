@@ -2,7 +2,7 @@
 
 # List of required packages
 packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
-              "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans")
+              "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer")
 
 # Function to install a package if it is missing
 install_if_missing <- function(p) {
@@ -25,7 +25,11 @@ lapply(packages, load_package)
 ###################################import data
 
 # raw data
-CSES4 <- read_dta("Data/cses4.dta")
+	# version 4 - 2011-2016 -- the file that was origionally used
+	CSES4 <- read_dta("Data/cses4.dta")
+
+	# the integrated dataset, which we where suggested to use by David Young
+	CSES <- read_dta("Data/cses_imd.dta")	
 
 #The constructed similarity measures
 logic_cont <- read_dta("Data/CSES/logic_cont_final.dta")
