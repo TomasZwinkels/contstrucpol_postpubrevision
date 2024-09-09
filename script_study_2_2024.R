@@ -34,8 +34,8 @@ lapply(packages, load_package)
 #The constructed similarity measures
 logic_cont <- read_dta("Data/CSES/logic_cont_final.dta")
 
-# prepared mlm data with similarity variables merged in
-mlm.dat.fin <- readRDS("Data/CSES/mlm.dat.fin0711.Rda")
+# prepared mlm data with similarity variables merged in ### Tomas: I am confused what this is doing here, because these data are also generated again further below?
+ mlm.dat.fin <- readRDS("Data/CSES/mlm.dat.fin0711.Rda")
 
 #################################### 
 #table(duplicated(CSESIMD$IMD1005))
@@ -237,17 +237,26 @@ CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>%
 #              
              
 ## now organize output by party supported.
-#### ALRIGHT, SO THIS IS THE BIT OF CODE THAT NEEDS TO BE ADJUSTED.
 
 #head(newdf)
 #head(BIG3)
-#newdf <- BIG3 ## ask Felicity about this ##
+
+### Tomas says: lets load newdf / BIG3 explicitly here!
+
+newdf <- BIG3 ## ask Felicity about this ##
 
 head(newdf)
-allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE)
+table(CSES4_SAMPLE$party)
+
+allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE) ## Tomas: there is an issue with party here.
 head(allsimdata1)
+tail(allsimdata1)
+table(allsimdata1$party)
 
 allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE)
+head(allsimdata2)
+table(allsimdata1$party.x)
+table(allsimdata1$party.y)
 
 # filter to selct only those who support a party in aff_pol1-4
 
