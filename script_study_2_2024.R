@@ -22,15 +22,27 @@ lapply(packages, install_if_missing)
 # Load all required packages
 lapply(packages, load_package)
 
+### to make sure that we really are working in a clean environment
+
+# Clear all objects in the environment
+rm(list = ls())
+
+# Prevent .RData from being loaded automatically
+if (file.exists(".RData")) {
+  unlink(".RData")
+}
+
 ###################################import data
 
 # raw data
 	# version 4 - 2011-2016 -- the file that was origionally used
 	CSES4 <- read_dta("Data/cses4.dta")
-
+	head(CSES4)
+	
 	# the integrated dataset, which we where suggested to use by David Young
 	CSES <- read_dta("Data/cses_imd.dta")	
-
+	head(CSES)
+	
 #The constructed similarity measures
 logic_cont <- read_dta("Data/CSES/logic_cont_final.dta")
 
@@ -180,7 +192,8 @@ CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>%
 
 ############################################ Make BS similarity
 
-# GO TO SCRIPT "cluster script final 1508"
+# GO TO SCRIPT "cluster script final 1508" (TOMAS: please note that the version of the cluster script on OSF refers to cluster script similarity variables 0711.R not the filename mentioned here, there it runs the 'BIG3')
+## OK, so the script to use here - with some comments from Tomas as well! - is: cluster_script_similarity_variables_2024.R!
                       
 ################################## loop
 
@@ -243,20 +256,33 @@ CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>%
 
 ### Tomas says: lets load newdf / BIG3 explicitly here!
 
-newdf <- BIG3 ## ask Felicity about this ##
+# newdf <- BIG3 ## ask Felicity about this ## -- alright, I am quite sure at this point this needs to be commented out, did not run anyways, but is legacy code from when just the three biggest countries where checked for robustness purposes
+newdf <- read_dta("Data/CSES/NewClusterResults2024Tomas.dta")
 
 head(newdf)
-table(CSES4_SAMPLE$party)
+table(newdf$country) # seems to be a subset from all the countries! -- in the manuscript is says " Australia, Austria, Brazil, Bulgaria, Canada, Czech Republic, Finland, France, Germany, Great Britain, Greece, Hong Kong, Iceland, Israel, Japan, Latvia, Mexico, Montenegro, New Zealand, Norway, Peru, Philippines, Poland, Portugal, Korea, Romania, Serbia, Slovakia, Slovenia, South Africa, Sweden, Switzerland, Taiwan, Thailand, Turkey, and United States."
+table(CSES4_SAMPLE$country)
 
-allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE) ## Tomas: there is an issue with party here.
+# check if the basis structure of newdf is what I would expect it to be
+
+nrow(newdf[which(newdf$x == 5),]) # should be the sample size of belgium
+table(CSES4_SAMPLE$country)
+
+
+table(CSES4_SAMPLE$party)
+head(CSES4_SAMPLE)
+
+allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE) ## Tomas: OK, so this simply matches on ID. 
 head(allsimdata1)
 tail(allsimdata1)
 table(allsimdata1$party)
+table(allsimdata1$country)
 
 allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE)
 head(allsimdata2)
-table(allsimdata1$party.x)
-table(allsimdata1$party.y)
+table(allsimdata2$party.x)
+table(allsimdata2$party.y)
+table(allsimdata2$country) # again, the reduced scope in terms of countries
 
 # filter to selct only those who support a party in aff_pol1-4
 
@@ -265,6 +291,11 @@ finalsimdata1 <- allsimdata2 %>%
          ingroup       = ifelse(party.x == party.y, "ingroup","outgroup")
          
   )
+head(finalsimdata1)
+nrow(newdf)
+table(newdf$country)
+nrow(finalsimdata1)
+nrow(mlm.dat.fin)
 
 finalsimdata <- finalsimdata1 %>% 
   mutate(target = ifelse(party.y==1,"partya",
@@ -281,6 +312,7 @@ finalsimdata <- finalsimdata1 %>%
 
 logic <-   aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
 content <- aggregate(content_sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
+
 
 logic_cont <- merge(logic, content, by = c('x','target'))
 logic_cont <- logic_cont %>% rename(  id = x,
@@ -308,6 +340,7 @@ logic_cont <- logic_cont %>%
                                                                                   ifelse(partytarget == "partyh","polar_8", 
                                                                                          ifelse(partytarget == "partyi","polar_9", NA))))))))))
 
+head(logic_cont)
 #write.dta(logic_cont,"Data/CSES/logic_cont_final.dta")
 ############################ Make MLM dataset
 
@@ -452,6 +485,10 @@ h1test <- lmer(aff.pol ~  logic_c + content_c+
                  countrydummy+ partydummy+
                  #                edu_c + age_c + inc_c +ethnicdummy+
                  (1 | id), data=mlm.dat.fin)
+
+summary(h1test) # alright, I do get estimates on the larger list of countries here.
+				 
+table(mlm.dat.fin$country) # OK, so here we have all the countries again...  how?!
 
 
 h1test.st1 <- lmer(aff.pol ~  logic_c + 

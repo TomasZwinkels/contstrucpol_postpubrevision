@@ -12,7 +12,7 @@ library(haven)
 #c("dplyr", "corrr", "rio", "tidyverse", "sjlabelled"))
 ############################ Import data
 
-DATAFORLOOP <- read_dta("Data/CSES/BIG3.dta")
+DATAFORLOOP <- read_dta("Data/CSES/BIG3.dta") ### Tomas: still only the BIG3 here! -- that is not the final code I am qutie sure. on OSF it refers to this version: cluster script similarity variables 0711.R
 
 ############################ Select test sample
 #
