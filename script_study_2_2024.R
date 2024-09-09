@@ -35,7 +35,7 @@ lapply(packages, load_package)
 logic_cont <- read_dta("Data/CSES/logic_cont_final.dta")
 
 # prepared mlm data with similarity variables merged in ### Tomas: I am confused what this is doing here, because these data are also generated again further below?
- mlm.dat.fin <- readRDS("Data/CSES/mlm.dat.fin0711.Rda")
+# mlm.dat.fin <- readRDS("Data/CSES/mlm.dat.fin0711.Rda") ### Tomas: I have ran this script with this commented out, and it still works, so I think this was basically just here to safe Felicity time when running the models, I will comment this out for now just to make sure we are not using outdated data at any point.
 
 #################################### 
 #table(duplicated(CSESIMD$IMD1005))
