@@ -281,6 +281,9 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		colnames(finalsimdata)[colnames(finalsimdata) == "content.sim"] <- "content_sim"
 		head(finalsimdata)
 		
+		summary(finalsimdata$content_sim)
+		table(is.na(finalsimdata$content_sim))
+		
 # now  make a variable that takes the pps mean over ingroup matches and outgroup matches
 		# (lots of aggregation here, so after the steps below things will become quite a bit faster again)
 
@@ -294,8 +297,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		# combine them
 			logic_cont <- merge(logic, content, by = c('x','target'))
 			logic_cont <- logic_cont %>% rename(  id = x,
-												  contentdif = content_sim
-		
+												  contentdif = content_sim )
+			head(logic_cont)
         
 		# again, relabbeling for later
 			logic_cont <- rename(logic_cont, partytarget = target)
@@ -312,10 +315,6 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 																							  ifelse(partytarget == "partyh","polar_8", 
 																									 ifelse(partytarget == "partyi","polar_9", NA))))))))))
 			head(logic_cont)
-			
-			# x is called 'id' below? ## @Felicty, pleaese check!
-				colnames(logic_cont)[colnames(logic_cont) == "x"] <- "id"
-				head(logic_cont)
 
 ############################ Make MLM dataset
 
@@ -323,17 +322,19 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	mlm.dat <- mlm.dat %>% mutate(targetorig = target)
 	mlm.dat <- as.data.frame(mlm.dat)
 	head(mlm.dat)
+	nrow(mlm.dat)
 
-#add content and structure variables in
+# add content and structure variables in
 	mlm.dat <- merge(mlm.dat, logic_cont, by = c('id','target'), all.x = TRUE)
+	nrow(mlm.dat)
 
-#make final variables
+# make final variables
 	mlm.dat.fin <- mlm.dat%>% 
 							mutate(affpoldummy = ifelse((party==1 & target == "polar_1")|(party==2 & target == "polar_2")|(party==3 & target == "polar_3")|(party==4 & target == "polar_4")|(party==5 & target == "polar_5")|(party==6 & target == "polar_6")|(party==7 & target == "polar_7")|(party==8 & target == "polar_8")|(party==9 & target == "polar_9"), "ingroup", 
 														ifelse((party==1 & target != "polar_1")|(party==2 & target != "polar_2")|(party==3 & target != "polar_3")|(party==4 & target != "polar_4")|(party==5 & target != "polar_5")|(party==6 & target != "polar_6")|(party==7 & target != "polar_7")|(party==8 & target != "polar_8")|(party==9 & target != "polar_9"), "outgroup", NA)),
 								   outgroupdummy = ifelse(affpoldummy == "ingroup",0,
 														  ifelse(affpoldummy == "outgroup",1,NA)),
-								   content     = 1-content_sim,
+								   content     = 1-contentdif,
 								   logic_c     = mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
 								   ingroup     = as.factor(affpoldummy),
 								   partynum    = paste0(country,party),
@@ -341,7 +342,9 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 								   aff.pol.num = as.numeric(aff.pol)
 							   
 							)                      
-								   
+	nrow(mlm.dat.fin)
+	head(mlm.dat.fin)
+	
 	mlm.dat.fin <- mlm.dat.fin%>% 
 	  mutate(content_c= mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE),
 			 partydummy  = as.factor(partynum),
@@ -349,6 +352,21 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			 content_q     = (mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE))^2)
 
 ################################### descritpives
+
+## inspection of the key variables
+
+	summary(mlm.dat.fin$affpoldummy)
+	table(mlm.dat.fin$affpoldummy)
+	table(is.na(mlm.dat.fin$affpoldummy))
+	
+	summary(mlm.dat.fin$outgroupdummy)
+	table(mlm.dat.fin$outgroupdummy)
+	table(is.na(mlm.dat.fin$outgroupdummy))
+	
+	summary(mlm.dat.fin$content)
+	table(mlm.dat.fin$outgroupdummy)
+	table(is.na(mlm.dat.fin$outgroupdummy))
+
 
 #cor set
 
@@ -450,8 +468,11 @@ effectsize::standardize_parameters(testc)
 effectsize::standardize_parameters(tests)
 
 ################################### H1 test
+
 emtyh1 <- lmer(aff.pol ~ 1 + (1 | id), data=mlm.dat.fin)
 compute_icc(emtyh1)
+
+head(mlm.dat.fin)
 
 h1test <- lmer(aff.pol ~  logic_c + content_c+ 
                  outgroupdummy+
@@ -460,7 +481,7 @@ h1test <- lmer(aff.pol ~  logic_c + content_c+
                  #                edu_c + age_c + inc_c +ethnicdummy+
                  (1 | id), data=mlm.dat.fin)
 
-summary(h1test) # alright, I do get estimates on the larger list of countries here.
+summary(h1test) 
 				 
 table(mlm.dat.fin$country) # OK, so here we have all the countries again...  how?!
 
