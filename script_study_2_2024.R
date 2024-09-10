@@ -277,71 +277,76 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 																				   ifelse(party.y==9,"partyi",999))))))))))
 		head(finalsimdata)
 		
-		
+		# variable renaming as below content_sim is used
+		colnames(finalsimdata)[colnames(finalsimdata) == "content.sim"] <- "content_sim"
+		head(finalsimdata)
 		
 # now  make a variable that takes the pps mean over ingroup matches and outgroup matches
 		# (lots of aggregation here, so after the steps below things will become quite a bit faster again)
 
 		# create two dataframes, one for logic and one for content
-		logic <-   aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
-		head(logic)
+			logic <-   aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
+			head(logic)
+			
+			content <- aggregate(content_sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
+			head(content)
 		
-		content <- aggregate(content_sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
-		head(content)
+		# combine them
+			logic_cont <- merge(logic, content, by = c('x','target'))
+			logic_cont <- logic_cont %>% rename(  id = x,
+												  contentdif = content_sim
 		
-		logic_cont <- merge(logic, content, by = c('x','target'))
-		logic_cont <- logic_cont %>% rename(  id = x,
-											  contentdif = content_sim
-		) 
-                      
-		logic_cont <- rename(logic_cont, partytarget = target)
-					
-		# note for Felicity, this is also correct I would say, one is simply making sure the labels are corrected.
-		logic_cont <- logic_cont %>%
-						  mutate(target = ifelse(partytarget == "partya", "polar_1",
-												ifelse(partytarget == "partyb", "polar_2", 
-													   ifelse(partytarget == "partyc","polar_3", 
-															  ifelse(partytarget == "partyd","polar_4", 
-																	 ifelse(partytarget == "partye","polar_5", 
-																			ifelse(partytarget == "partyf","polar_6", 
-																				   ifelse(partytarget == "partyg","polar_7", 
-																						  ifelse(partytarget == "partyh","polar_8", 
-																								 ifelse(partytarget == "partyi","polar_9", NA))))))))))
-
-		head(logic_cont)
-
+        
+		# again, relabbeling for later
+			logic_cont <- rename(logic_cont, partytarget = target)
+			head(logic_cont)
+			
+			logic_cont <- logic_cont %>%
+							  mutate(target = ifelse(partytarget == "partya", "polar_1",
+													ifelse(partytarget == "partyb", "polar_2", 
+														   ifelse(partytarget == "partyc","polar_3", 
+																  ifelse(partytarget == "partyd","polar_4", 
+																		 ifelse(partytarget == "partye","polar_5", 
+																				ifelse(partytarget == "partyf","polar_6", 
+																					   ifelse(partytarget == "partyg","polar_7", 
+																							  ifelse(partytarget == "partyh","polar_8", 
+																									 ifelse(partytarget == "partyi","polar_9", NA))))))))))
+			head(logic_cont)
+			
+			# x is called 'id' below? ## @Felicty, pleaese check!
+				colnames(logic_cont)[colnames(logic_cont) == "x"] <- "id"
+				head(logic_cont)
 
 ############################ Make MLM dataset
 
-mlm.dat <- pivot_longer(CSES4_SAMPLE, polar_1:polar_9,  names_to = "target", values_to = "aff.pol")
-mlm.dat <- mlm.dat %>% mutate(targetorig = target)
-mlm.dat <- as.data.frame(mlm.dat)
+	mlm.dat <- pivot_longer(CSES4_SAMPLE, polar_1:polar_9,  names_to = "target", values_to = "aff.pol")
+	mlm.dat <- mlm.dat %>% mutate(targetorig = target)
+	mlm.dat <- as.data.frame(mlm.dat)
+	head(mlm.dat)
 
 #add content and structure variables in
-mlm.dat <- merge(mlm.dat, logic_cont, by = c('id','target'), all.x = TRUE)
+	mlm.dat <- merge(mlm.dat, logic_cont, by = c('id','target'), all.x = TRUE)
 
 #make final variables
-mlm.dat.fin <- mlm.dat%>% 
-                        mutate(affpoldummy = ifelse((party==1 & target == "polar_1")|(party==2 & target == "polar_2")|(party==3 & target == "polar_3")|(party==4 & target == "polar_4")|(party==5 & target == "polar_5")|(party==6 & target == "polar_6")|(party==7 & target == "polar_7")|(party==8 & target == "polar_8")|(party==9 & target == "polar_9"), "ingroup", 
-                                                    ifelse((party==1 & target != "polar_1")|(party==2 & target != "polar_2")|(party==3 & target != "polar_3")|(party==4 & target != "polar_4")|(party==5 & target != "polar_5")|(party==6 & target != "polar_6")|(party==7 & target != "polar_7")|(party==8 & target != "polar_8")|(party==9 & target != "polar_9"), "outgroup", NA)),
-                               outgroupdummy = ifelse(affpoldummy == "ingroup",0,
-                                                      ifelse(affpoldummy == "outgroup",1,NA)),
-                               content     = 1-contentdif,
-                               logic_c     = mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
-                               ingroup     = as.factor(affpoldummy),
-                               partynum    = paste0(country,party),
-                               countrydummy= as.factor(country),
-                               aff.pol.num = as.numeric(aff.pol)
-                           
-                        )                      
-                               
-mlm.dat.fin <- mlm.dat.fin%>% 
-  mutate(content_c= mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE),
-         partydummy  = as.factor(partynum),
-         logic_q     = logic_c^2,
-         content_q     = (mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE))^2)
-
-#saveRDS(mlm.dat.fin, file = "Data/CSES/mlm.dat.fin0711.Rda")
+	mlm.dat.fin <- mlm.dat%>% 
+							mutate(affpoldummy = ifelse((party==1 & target == "polar_1")|(party==2 & target == "polar_2")|(party==3 & target == "polar_3")|(party==4 & target == "polar_4")|(party==5 & target == "polar_5")|(party==6 & target == "polar_6")|(party==7 & target == "polar_7")|(party==8 & target == "polar_8")|(party==9 & target == "polar_9"), "ingroup", 
+														ifelse((party==1 & target != "polar_1")|(party==2 & target != "polar_2")|(party==3 & target != "polar_3")|(party==4 & target != "polar_4")|(party==5 & target != "polar_5")|(party==6 & target != "polar_6")|(party==7 & target != "polar_7")|(party==8 & target != "polar_8")|(party==9 & target != "polar_9"), "outgroup", NA)),
+								   outgroupdummy = ifelse(affpoldummy == "ingroup",0,
+														  ifelse(affpoldummy == "outgroup",1,NA)),
+								   content     = 1-content_sim,
+								   logic_c     = mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
+								   ingroup     = as.factor(affpoldummy),
+								   partynum    = paste0(country,party),
+								   countrydummy= as.factor(country),
+								   aff.pol.num = as.numeric(aff.pol)
+							   
+							)                      
+								   
+	mlm.dat.fin <- mlm.dat.fin%>% 
+	  mutate(content_c= mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE),
+			 partydummy  = as.factor(partynum),
+			 logic_q     = logic_c^2,
+			 content_q     = (mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE))^2)
 
 ################################### descritpives
 
