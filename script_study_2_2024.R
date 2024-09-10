@@ -2,7 +2,7 @@
 
 	# List of required packages
 		packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
-					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer")
+					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer","parallel","doParallel")
 
 	# Function to install a package if it is missing
 		install_if_missing <- function(p) {
@@ -43,13 +43,6 @@
 	CSES_IMD <- read_dta("Data/cses_imd.dta")	
 	head(CSES_IMD)
 	
-# the constructed similarity measures
-	logic_cont <- read_dta("Data/CSES/logic_cont_final.dta")
-	head(logic_cont)
-
-# prepared mlm data with similarity variables merged in ### Tomas: I am confused what this is doing here, because these data are also generated again further below?
-# mlm.dat.fin <- readRDS("Data/CSES/mlm.dat.fin0711.Rda") ### Tomas: I have ran this script with this commented out, and it still works, so I think this was basically just here to safe Felicity time when running the models, I will comment this out for now just to make sure we are not using outdated data at any point.
-
 #################################### select data
 CSES4_SELECT <- CSES4    %>%  select(D1005, D1006_UN, D1006_NAM, D3014, D3001_1, D3001_2, D3001_3, D3001_4, D3001_5, D3001_6, D3001_7, D3001_8, 
                                      D3011_A, D3011_B, D3011_C, D3011_D, D3011_E, D3011_F, D3011_G, D3011_H, D3011_I, D5201_A, D5201_B, D5201_C, D5201_D, D5201_E, D5201_F, D5201_G, D5201_H, D5201_I, 
@@ -120,7 +113,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                                               is.na(bs_welfare)
                                                  )
 
-#################################### somewhere around here is probably where new merging in of parlgov ids from the CSES_IMD data 
+#################################### somewhere around here is probably where new merging in of parlgov ids from the CSES_IMD data (are already loaded on line 43)
 								   # file needs to happen (as in the next step a filter is applied that needs this info)
 
 
@@ -159,140 +152,165 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
              
 ################################## clustering script
 
-parallel::detectCores()              
+######### get cores etc ready
 
-looplist1 <- list()
+	# cores
+	n.cores <- parallel::detectCores() -1
+	n.cores <- 3
 
-countnamesvec <- names(table(CSES4_SAMPLE$country))
+	#create the cluster
+	my.cluster <- parallel::makeCluster(
+	  n.cores, 
+	  type = "PSOCK"
+	)
 
-for (i in 1:length(table(CSES4_SAMPLE$country))) {
-  print(i)
-  dat_selectloop <- CSES4_SAMPLE %>% dplyr::filter(country == countnamesvec[i])
+	print(my.cluster)
+
+	#register it to be used by %dopar%
+	doParallel::registerDoParallel(cl = my.cluster)
+
+	#check if it is registered (optional)
+	foreach::getDoParRegistered()
+
+######### run the loop, fast version with transposed matrix       
+
+	DATAFORLOOP <- CSES4_SAMPLE
+
+	foreachlist <- foreach(cname = names(table(DATAFORLOOP$country)),
+                      .packages= c("dplyr", "corrr", "rio", "tidyverse", "sjlabelled"))  %dopar% {
+                        
+                        dat_selectloop <- DATAFORLOOP[which(DATAFORLOOP$country == cname),]
+                        
+                        #if(length(table(duplicated(dat_selectloop$id)))>1)
+                        #{
+                        #  print("warning duplicate ids")
+                        #}
+                        
+                        transposed_supp <- dat_selectloop %>% 
+                          dplyr::select(bs_ideology,
+                                        bs_health  ,
+                                        bs_educ    ,
+                                        bs_umeploy ,
+                                        bs_defense ,
+                                        bs_pension ,
+                                        bs_busines ,
+                                        bs_crime   ,
+                                        bs_welfare ) %>% # put the column of the attitude/issue items here
+                          t(.) %>% # transposes the whole thing and puts it on its side
+                          `colnames<-`(dat_selectloop$id) %>% # makes the column names the participant ID (so use whatever participant ID is in your data)
+                          as.data.frame()
+                        
+                        #this is where I calculate the structure similarity/difference
+                        attitude_compare <- correlate(transposed_supp, use = "pairwise.complete.obs") %>% # calculates cors
+                          #  shave() %>% # removes half the diag (to avoid repeats)
+                          stretch(na.rm = FALSE) %>% # makes it a long data from with two columsn, one for X and one for Y
+                          drop_na(r) %>% # remove missing values - this remove them after correlation i.e., removes diagonal self with self
+                          dplyr::rename(agreement = r) %>% # calls the raw correlation "agreement"
+                          dplyr::mutate(logic = abs(agreement)) %>% # BS structure/logic similarity by taking absolute value
+                          dplyr::select(x, y, agreement, logic) # selects key columns. X and Y will have the participant IDs
+                        
+                        #this is where I calculate teh content similarity/difference
+                        allsimdata <- as.data.frame(attitude_compare)
+                        supp <- t(transposed_supp)
+                        allsimdata$content.sim <- rowMeans(abs(supp[allsimdata[,1], ] - supp[allsimdata[,2], ] ),  na.rm = TRUE)
+                        allsimdata$country <- cname
+
+                       allsimdata
+                      } 
   
-  transposed_supp <- dat_selectloop %>% 
-    dplyr::select(bs_ideology,
-                  bs_health,
-                  bs_educ,
-                  bs_umeploy,
-                  bs_defense,
-                  bs_pension,
-                  bs_busines,
-                  bs_crime,
-                  bs_welfare) %>% 
-    t(.) %>%
-    `colnames<-`(dat_selectloop$id) %>%
-    as.data.frame()
   
-  attitude_compare <- correlate(transposed_supp) %>%
-    stretch(na.rm = FALSE) %>%
-    drop_na(r) %>%
-    dplyr::rename(agreement = r) %>%
-    dplyr::mutate(logic = abs(agreement)) %>%
-    dplyr::select(x, y, agreement, logic)
-  
-  allsimdata <- as.data.frame(attitude_compare)
-  supp <- t(transposed_supp)
-  allsimdata$content.sim <- rowMeans(abs(supp[allsimdata[,1], ] - supp[allsimdata[,2], ] ),  na.rm = TRUE)
-  allsimdata <- cbind(country = get_labels(CSES4_SAMPLE$country)[i], allsimdata)
-  
-  looplist1[[i]] <- allsimdata
-  names(looplist1)[i] <- get_labels(CSES4_SAMPLE$country)[i]
-}
+	newdf <- bind_rows(foreachlist, .id = NULL)
 
-newdf <- bind_rows(looplist1, .id = NULL)
+	# bunch of inspections from Tomas
 
+		# check newdf for country completeness
+		table(names(table(newdf$country)) == names(table(CSES4_SAMPLE$country))) # should return TRUE only
 
-newdf <- read_dta("Data/CSES/NewClusterResults2024Tomas.dta")
+		# check if the basis structure of newdf is what one would expect it to be
+			head(newdf)
+			nrow(newdf[which(newdf$x == "036020130001000794"),]) # should be the sample size of australia
+			table(CSES4_SAMPLE$country) # gets close, I guess there was probably some missingness on some variables. -- 
+			# question for Felicity: do we understand why there are 3177 participants in australie but we only have simularity data for 3133 of them?
+			table(CSES4_SAMPLE$country,CSES4_SAMPLE$na_bs)
+	
+			tail(newdf)
+			nrow(newdf[which(newdf$x == "840020120000002055"),]) # should be around the sample size of the USA
+			table(CSES4_SAMPLE$country) # indeed close again, would like to at some point understand the missingness mechanism though.
 
-head(newdf)
-table(newdf$country) # seems to be a subset from all the countries! -- in the manuscript is says " Australia, Austria, Brazil, Bulgaria, Canada, Czech Republic, Finland, France, Germany, Great Britain, Greece, Hong Kong, Iceland, Israel, Japan, Latvia, Mexico, Montenegro, New Zealand, Norway, Peru, Philippines, Poland, Portugal, Korea, Romania, Serbia, Slovakia, Slovenia, South Africa, Sweden, Switzerland, Taiwan, Thailand, Turkey, and United States."
-table(CSES4_SAMPLE$country)
+################################## the CSES4_SAMPLE data is MERGED INTO the simularity data from the clustering script 
+	# (please note that as here we are working with the very BIG and long dataset, opperations are quite slow.)
 
-# check for country completeness
-table(names(table(newdf$country)) == names(table(CSES4_SAMPLE$country))) # should return TRUE only
+	# get the party from CSES4_SAMPLE for the 'sending' participant (x)
+	allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE)
+	head(allsimdata1)
+	tail(allsimdata1)
+	table(allsimdata1$party)
+	table(allsimdata1$country)
 
-# check if the basis structure of newdf is what I would expect it to be
-head(newdf)
-nrow(newdf[which(newdf$x == "036020130001000794"),]) # should be the sample size of australia
-table(CSES4_SAMPLE$country) # gets close, I guess there was probably some missingness on some variables
+	#  get the party from CSES4_SAMPLE for the 'receiving' participant (y)
+	allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE)
+	head(allsimdata2)
+	table(allsimdata2$party.x)
+	table(allsimdata2$party.y)
+	table(allsimdata2$country) # again, the reduced scope in terms of countries
 
-tail(newdf)
-nrow(newdf[which(newdf$x == "840020120000002055"),]) # should be around the sample size of the USA
-table(CSES4_SAMPLE$country) # indeed close again, so this looks  promissing.
+	# create the crucial ingroup/outgroup variable (@Felicity: please note that this is done correctly, the party ids are consistent between participants).
+		# filter to selct only those who support a party in aff_pol1-4 # <-- Tomas: I don't understand this comment.
+			finalsimdata1 <- allsimdata2 %>% 
+			  mutate(match         = paste(party.x,party.y,sep="_"),
+					 ingroup       = ifelse(party.x == party.y, "ingroup","outgroup")
+					 
+			  )
+			
+			head(finalsimdata1)
 
-table(CSES4_SAMPLE$party)
-head(CSES4_SAMPLE)
-
-allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE) ## Tomas: OK, so this simply matches on ID. 
-head(allsimdata1)
-tail(allsimdata1)
-table(allsimdata1$party)
-table(allsimdata1$country)
-
-allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE)
-head(allsimdata2)
-table(allsimdata2$party.x)
-table(allsimdata2$party.y)
-table(allsimdata2$country) # again, the reduced scope in terms of countries
-
-# filter to selct only those who support a party in aff_pol1-4
-
-finalsimdata1 <- allsimdata2 %>% 
-  mutate(match         = paste(party.x,party.y,sep="_"),
-         ingroup       = ifelse(party.x == party.y, "ingroup","outgroup")
-         
-  )
-head(finalsimdata1)
-nrow(newdf)
-table(newdf$country)
-nrow(finalsimdata1)
-nrow(mlm.dat.fin)
-
-finalsimdata <- finalsimdata1 %>% 
-  mutate(target = ifelse(party.y==1,"partya",
-                          ifelse(party.y==2,"partyb",
-                                 ifelse(party.y==3,"partyc",
-                                        ifelse(party.y==4,"partyd",
-                                               ifelse(party.y==5,"partye",
-                                                      ifelse(party.y==6,"partyf",
-                                                             ifelse(party.y==7,"partyg",
-                                                                    ifelse(party.y==8,"partyh",
-                                                                           ifelse(party.y==9,"partyi",999))))))))))
-
+	# I think this is just a relabbeling exercise
+		finalsimdata <- finalsimdata1 %>% 
+		  mutate(target = ifelse(party.y==1,"partya",
+								  ifelse(party.y==2,"partyb",
+										 ifelse(party.y==3,"partyc",
+												ifelse(party.y==4,"partyd",
+													   ifelse(party.y==5,"partye",
+															  ifelse(party.y==6,"partyf",
+																	 ifelse(party.y==7,"partyg",
+																			ifelse(party.y==8,"partyh",
+																				   ifelse(party.y==9,"partyi",999))))))))))
+		head(finalsimdata)
+		
+		
+		
 # now  make a variable that takes the pps mean over ingroup matches and outgroup matches
+		# (lots of aggregation here, so after the steps below things will become quite a bit faster again)
 
-logic <-   aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
-content <- aggregate(content_sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
-
-
-logic_cont <- merge(logic, content, by = c('x','target'))
-logic_cont <- logic_cont %>% rename(  id = x,
-                                      contentdif = content_sim
-) 
-##write.csv(logic_cont,"Data/Main survey/logic_cont.csv", row.names = FALSE)
-#logic_contbig3 <- logic_cont
-#logic_cont <- rbind(logic_contsmall, logic_contmid, logic_contbig3)
-
-#write.dta(logic_cont,"Data/CSES/logic_contall.dta")
-
-#logic_contsmall <- logic_cont
-#logic_cont <- rbind(logic_contsmall, logic_contmid)
+		# create two dataframes, one for logic and one for content
+		logic <-   aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
+		head(logic)
+		
+		content <- aggregate(content_sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
+		head(content)
+		
+		logic_cont <- merge(logic, content, by = c('x','target'))
+		logic_cont <- logic_cont %>% rename(  id = x,
+											  contentdif = content_sim
+		) 
                       
-logic_cont <- rename(logic_cont, partytarget = target)
-                      
-logic_cont <- logic_cont %>%
-                  mutate(target = ifelse(partytarget == "partya", "polar_1",
-                                        ifelse(partytarget == "partyb", "polar_2", 
-                                               ifelse(partytarget == "partyc","polar_3", 
-                                                      ifelse(partytarget == "partyd","polar_4", 
-                                                             ifelse(partytarget == "partye","polar_5", 
-                                                                    ifelse(partytarget == "partyf","polar_6", 
-                                                                           ifelse(partytarget == "partyg","polar_7", 
-                                                                                  ifelse(partytarget == "partyh","polar_8", 
-                                                                                         ifelse(partytarget == "partyi","polar_9", NA))))))))))
+		logic_cont <- rename(logic_cont, partytarget = target)
+					
+		# note for Felicity, this is also correct I would say, one is simply making sure the labels are corrected.
+		logic_cont <- logic_cont %>%
+						  mutate(target = ifelse(partytarget == "partya", "polar_1",
+												ifelse(partytarget == "partyb", "polar_2", 
+													   ifelse(partytarget == "partyc","polar_3", 
+															  ifelse(partytarget == "partyd","polar_4", 
+																	 ifelse(partytarget == "partye","polar_5", 
+																			ifelse(partytarget == "partyf","polar_6", 
+																				   ifelse(partytarget == "partyg","polar_7", 
+																						  ifelse(partytarget == "partyh","polar_8", 
+																								 ifelse(partytarget == "partyi","polar_9", NA))))))))))
 
-head(logic_cont)
-#write.dta(logic_cont,"Data/CSES/logic_cont_final.dta")
+		head(logic_cont)
+
+
 ############################ Make MLM dataset
 
 mlm.dat <- pivot_longer(CSES4_SAMPLE, polar_1:polar_9,  names_to = "target", values_to = "aff.pol")
