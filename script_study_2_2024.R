@@ -1,38 +1,38 @@
-##################################install and load pacakges
+################################### install and load pacakges
 
-# List of required packages
-packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
-              "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer")
+	# List of required packages
+		packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
+					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer")
 
-# Function to install a package if it is missing
-install_if_missing <- function(p) {
-  if (!requireNamespace(p, quietly = TRUE)) {
-    install.packages(p, dependencies = TRUE)
-  }
-}
+	# Function to install a package if it is missing
+		install_if_missing <- function(p) {
+		  if (!requireNamespace(p, quietly = TRUE)) {
+			install.packages(p, dependencies = TRUE)
+		  }
+		}
 
-# Function to load a package
-load_package <- function(p) {
-  library(p, character.only = TRUE)
-}
+	# Function to load a package
+		load_package <- function(p) {
+		  library(p, character.only = TRUE)
+		}
 
-# Install all missing packages
-lapply(packages, install_if_missing)
+	# Install all missing packages
+		lapply(packages, install_if_missing)
 
-# Load all required packages
-lapply(packages, load_package)
+	# Load all required packages
+		lapply(packages, load_package)
 
-### to make sure that we really are working in a clean environment
+################################### making sure that we really are working in a clean environment
 
-# Clear all objects in the environment
-rm(list = ls())
+	# Clear all objects in the environment
+	rm(list = ls())
 
-# Prevent .RData from being loaded automatically
-if (file.exists(".RData")) {
-  unlink(".RData")
-}
+	# Prevent .RData from being loaded automatically
+	if (file.exists(".RData")) {
+	  unlink(".RData")
+	}
 
-###################################import data
+################################### import data
 
 # raw data
 	# version 4 - 2011-2016 -- the file that was origionally used
@@ -40,19 +40,16 @@ if (file.exists(".RData")) {
 	head(CSES4)
 	
 	# the integrated dataset, which we where suggested to use by David Young
-	CSES <- read_dta("Data/cses_imd.dta")	
-	head(CSES)
+	CSES_IMD <- read_dta("Data/cses_imd.dta")	
+	head(CSES_IMD)
 	
-#The constructed similarity measures
-logic_cont <- read_dta("Data/CSES/logic_cont_final.dta")
+# the constructed similarity measures
+	logic_cont <- read_dta("Data/CSES/logic_cont_final.dta")
+	head(logic_cont)
 
 # prepared mlm data with similarity variables merged in ### Tomas: I am confused what this is doing here, because these data are also generated again further below?
 # mlm.dat.fin <- readRDS("Data/CSES/mlm.dat.fin0711.Rda") ### Tomas: I have ran this script with this commented out, and it still works, so I think this was basically just here to safe Felicity time when running the models, I will comment this out for now just to make sure we are not using outdated data at any point.
 
-#################################### 
-#table(duplicated(CSESIMD$IMD1005))
-#table(duplicated(CSES4$D1005))
-#
 #################################### select data
 CSES4_SELECT <- CSES4    %>%  select(D1005, D1006_UN, D1006_NAM, D3014, D3001_1, D3001_2, D3001_3, D3001_4, D3001_5, D3001_6, D3001_7, D3001_8, 
                                      D3011_A, D3011_B, D3011_C, D3011_D, D3011_E, D3011_F, D3011_G, D3011_H, D3011_I, D5201_A, D5201_B, D5201_C, D5201_D, D5201_E, D5201_F, D5201_G, D5201_H, D5201_I, 
@@ -123,52 +120,34 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                                               is.na(bs_welfare)
                                                  )
 
-######### SAMPLE selection
+#################################### somewhere around here is probably where new merging in of parlgov ids from the CSES_IMD data 
+								   # file needs to happen (as in the next step a filter is applied that needs this info)
+
+
+#################################### ANALYTICAL SAMPLE selection
 
 # As per pre-reg remove pps for whom n>= 2 beleif system items are absent
 
-# check missingness
-#                      table(CSES4_CLEAN$na_bs)
-#
-#                      CSES4_CLEAN %>% 
-#                        group_by(country) %>% 
-#                        summarise(n = n())
-#                      
-#                      CSES4_CLEAN %>% 
-#                        group_by(country) %>% 
-#                        summarise_each(funs(sum(is.na(.))))
-#
-#
-##filter if party is not measured in liking (i.e., party must be 1-9, if belief system items do not have more than 2 missing, AND if there are at least 20 party supporters for each group)
-CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs<2) # should be 2 or more i.e.,  <3 ### TOMAS: should me more like if below letter L? 
-#
-CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>% 
-  group_by(country, party) %>% 
-  filter(n() >20) %>% 
-  ungroup()
+	##filter if party is not measured in liking (i.e., party must be 1-9, if belief system items do not have more than 2 missing, AND if there are at least 20 party supporters for each group)
+	CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs<2) # should be 2 or more i.e.,  <3 
+	#
+	CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>% 
+	  group_by(country, party) %>% 
+	  filter(n() >20) %>% 
+	  ungroup()
 
-                 # get number of cases per country 
+	# some inspections
+                # get number of cases per country 
                    CSES4_SAMPLE %>% 
                      group_by(country) %>% 
                      summarise(n = n())
                    
-				   # get number of cases per country starting with smallest cases per country
+				# get number of cases per country starting with smallest cases per country
                    CSES4_SAMPLE %>% 
                       count(country) %>% 
                      arrange(n)
-        
-                    
-#make dataset containing smallest 25 countries
-          #        SMALLEST25 <- CSES4_SAMPLE %>% group_by(country) %>% filter(n() < 1000)
-          #         SMALLEST25 %>% 
-          #           count(country) %>%
-          #           arrange(n)
-   
-                   
-#write.dta(CSES4_SAMPLE,"Data/Main survey/CSES4_SAMPLE.dta")
-
-
-					# check missingness
+             
+				# check missingness
                       CSES4_SAMPLE %>% 
                         group_by(country,party) %>% 
                         summarise(n = n())
@@ -176,98 +155,70 @@ CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>%
                       table(CSES4_SAMPLE$country, CSES4_SAMPLE$party)  
                       table(CSES4_SAMPLE$na_bs)
                       
-
-## note that for some variables party_a differs across rows, e.g., for greece, party a is 47 for some people and 1592 for others.
-#x <-       c(unique(CSES4_CLEAN$party1),
-#             unique(CSES4_CLEAN$party2),
-#             unique(CSES4_CLEAN$party3),
-#             unique(CSES4_CLEAN$party4),
-#             unique(CSES4_CLEAN$party5),
-#             unique(CSES4_CLEAN$party6),
-#             unique(CSES4_CLEAN$party7),
-#             unique(CSES4_CLEAN$party8),
-#             unique(CSES4_CLEAN$party9))
-#    
-
-
 ############################################ Make BS similarity
-
-# GO TO SCRIPT "cluster script final 1508" (TOMAS: please note that the version of the cluster script on OSF refers to cluster script similarity variables 0711.R not the filename mentioned here, there it runs the 'BIG3')
-## OK, so the script to use here - with some comments from Tomas as well! - is: cluster_script_similarity_variables_2024.R!
-                      
-################################## loop
-
-## parallel::detectCores()              
-#              
-#looplist1 <- list()
-#
-#countnamesvec <- names(table(CSES4_SAMPLE$country))
-#
-## for(i in length(table(dat_select$country)))
-#for (i in 1:length(table(CSES4_SAMPLE$country))) {
-#  print(i)
-#  dat_selectloop <- CSES4_SAMPLE %>% dplyr::filter(country == countnamesvec[i])
-#  
-#  transposed_supp <- dat_selectloop %>% 
-#    dplyr::select(bs_ideology,
-#                  bs_health  ,
-#                  bs_educ    ,
-#                  bs_umeploy ,
-#                  bs_defense ,
-#                  bs_pension ,
-#                  bs_busines ,
-#                  bs_crime   ,
-#                  bs_welfare ) %>% # put the column of the attitude/issue items here
-#    t(.) %>% # transposes the whole thing and puts it on its side
-#    `colnames<-`(dat_selectloop$id) %>% # makes the column names the participant ID (so use whatever participant ID is in your data)
-#    as.data.frame()
-#  
-#  attitude_compare <- correlate(transposed_supp) %>% # calculates cors
-#    #  shave() %>% # removes half the diag (to avoid repeats)
-#    stretch(na.rm = FALSE) %>% # makes it a long data from with two columsn, one for X and one for Y
-#    drop_na(r) %>% # remove missing values
-#    dplyr::rename(agreement = r) %>% # calls the raw correlation "agreement"
-#    dplyr::mutate(logic = abs(agreement)) %>% # BS structure/logic similarity by taking absolute value
-#    dplyr::select(x, y, agreement, logic) # selects key columns. X and Y will have the participant IDs
-#  
-#  
-#  allsimdata <- as.data.frame(attitude_compare)
-#                      supp <- t(transposed_supp)
-#                      allsimdata$content.sim <- rowMeans(abs(supp[allsimdata[,1], ] - supp[allsimdata[,2], ] ),  na.rm = TRUE)
-#                      allsimdata <- cbind(country= get_labels(CSES4_SAMPLE$country)[i], allsimdata)
-#  
-#  
-#  looplist1[[i]] <- allsimdata
-#  names(looplist1)[i] <- get_labels(CSES4_SAMPLE$country)[i]
-#
-#  }
-#
-#newdf <- bind_rows(looplist1, .id = NULL)
-#
-#write.csv(newdf,"Data/Main survey/allcountriesparties selected.csv", row.names = FALSE)
-
-###### See cluster script with foreach loop
-#              
              
-## now organize output by party supported.
+################################## clustering script
 
-#head(newdf)
-#head(BIG3)
+parallel::detectCores()              
 
-### Tomas says: lets load newdf / BIG3 explicitly here!
+looplist1 <- list()
 
-# newdf <- BIG3 ## ask Felicity about this ## -- alright, I am quite sure at this point this needs to be commented out, did not run anyways, but is legacy code from when just the three biggest countries where checked for robustness purposes
+countnamesvec <- names(table(CSES4_SAMPLE$country))
+
+for (i in 1:length(table(CSES4_SAMPLE$country))) {
+  print(i)
+  dat_selectloop <- CSES4_SAMPLE %>% dplyr::filter(country == countnamesvec[i])
+  
+  transposed_supp <- dat_selectloop %>% 
+    dplyr::select(bs_ideology,
+                  bs_health,
+                  bs_educ,
+                  bs_umeploy,
+                  bs_defense,
+                  bs_pension,
+                  bs_busines,
+                  bs_crime,
+                  bs_welfare) %>% 
+    t(.) %>%
+    `colnames<-`(dat_selectloop$id) %>%
+    as.data.frame()
+  
+  attitude_compare <- correlate(transposed_supp) %>%
+    stretch(na.rm = FALSE) %>%
+    drop_na(r) %>%
+    dplyr::rename(agreement = r) %>%
+    dplyr::mutate(logic = abs(agreement)) %>%
+    dplyr::select(x, y, agreement, logic)
+  
+  allsimdata <- as.data.frame(attitude_compare)
+  supp <- t(transposed_supp)
+  allsimdata$content.sim <- rowMeans(abs(supp[allsimdata[,1], ] - supp[allsimdata[,2], ] ),  na.rm = TRUE)
+  allsimdata <- cbind(country = get_labels(CSES4_SAMPLE$country)[i], allsimdata)
+  
+  looplist1[[i]] <- allsimdata
+  names(looplist1)[i] <- get_labels(CSES4_SAMPLE$country)[i]
+}
+
+newdf <- bind_rows(looplist1, .id = NULL)
+
+
 newdf <- read_dta("Data/CSES/NewClusterResults2024Tomas.dta")
 
 head(newdf)
 table(newdf$country) # seems to be a subset from all the countries! -- in the manuscript is says " Australia, Austria, Brazil, Bulgaria, Canada, Czech Republic, Finland, France, Germany, Great Britain, Greece, Hong Kong, Iceland, Israel, Japan, Latvia, Mexico, Montenegro, New Zealand, Norway, Peru, Philippines, Poland, Portugal, Korea, Romania, Serbia, Slovakia, Slovenia, South Africa, Sweden, Switzerland, Taiwan, Thailand, Turkey, and United States."
 table(CSES4_SAMPLE$country)
 
+# check for country completeness
+table(names(table(newdf$country)) == names(table(CSES4_SAMPLE$country))) # should return TRUE only
+
 # check if the basis structure of newdf is what I would expect it to be
+head(newdf)
+nrow(newdf[which(newdf$x == "036020130001000794"),]) # should be the sample size of australia
+table(CSES4_SAMPLE$country) # gets close, I guess there was probably some missingness on some variables
 
-nrow(newdf[which(newdf$x == 5),]) # should be the sample size of belgium
-table(CSES4_SAMPLE$country)
-
+tail(newdf)
+nrow(newdf[which(newdf$x == "840020120000002055"),]) # should be around the sample size of the USA
+table(CSES4_SAMPLE$country) # indeed close again, so this looks  promissing.
 
 table(CSES4_SAMPLE$party)
 head(CSES4_SAMPLE)
