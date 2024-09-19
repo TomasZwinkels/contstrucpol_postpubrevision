@@ -2,7 +2,7 @@
 
 	# List of required packages
 		packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
-					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer","parallel","doParallel")
+					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer","parallel","doParallel","sqldf")
 
 	# Function to install a package if it is missing
 		install_if_missing <- function(p) {
@@ -43,6 +43,15 @@
 	CSES_IMD <- read_dta("Data/cses_imd.dta")	
 	head(CSES_IMD)
 	
+	nrow(CSES_IMD)
+	CSES_IMD_4 <- CSES_IMD[which(CSES_IMD$IMD1008_MOD_4 == 1),]
+	nrow(CSES_IMD_4)
+	names(CSES_IMD_4)
+	
+	# I think this is the respondent id
+	head(CSES_IMD_4$IMD1005)
+	length(CSES_IMD_4$IMD1005) == length(unique(CSES_IMD_4$IMD1005)) # should return TRUE, so not unique..
+	
 #################################### select data
 CSES4_SELECT <- CSES4    %>%  select(D1005, D1006_UN, D1006_NAM, D3014, D3001_1, D3001_2, D3001_3, D3001_4, D3001_5, D3001_6, D3001_7, D3001_8, 
                                      D3011_A, D3011_B, D3011_C, D3011_D, D3011_E, D3011_F, D3011_G, D3011_H, D3011_I, D5201_A, D5201_B, D5201_C, D5201_D, D5201_E, D5201_F, D5201_G, D5201_H, D5201_I, 
@@ -61,7 +70,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                         busines = ifelse(D3001_6<6, D3001_6, NA),
                                         crime   = ifelse(D3001_7<6, D3001_7, NA),
                                         welfare = ifelse(D3001_8<6, D3001_8, NA),
-                                        polar_1 = as.numeric(ifelse(D3011_A<11, D3011_A, NA)),
+                                        polar_1 = as.numeric(ifelse(D3011_A<11, D3011_A, NA)), # we drop these here, because we would like to take them from IMD
                                         polar_2 = as.numeric(ifelse(D3011_B<11, D3011_B, NA)),
                                         polar_3 = as.numeric(ifelse(D3011_C<11, D3011_C, NA)),
                                         polar_4 = as.numeric(ifelse(D3011_D<11, D3011_D, NA)),
@@ -112,10 +121,81 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                                               is.na(bs_crime  )+
                                                               is.na(bs_welfare)
                                                  )
+												 
+### here, I use the participant ID to merge in whatever info I need from CSES_IMD_4
+
+	# lets first make CSES_IMD_4 make a bit more sense
+		
+		nrow(CSES_IMD_4)
+		head(CSES_IMD_4)
+		
+		table(CSES_IMD_4$IMD5000_A)
+		
+		CSES_IMD_4_CLEAN <- CSES_IMD_4  %>% 
+										  mutate(
+											id = IMD1005,
+											closestpartyuniqueid = IMD3005_3,
+											numid_party_a = IMD5000_A,
+											numid_party_b = IMD5000_B,
+											numid_party_c = IMD5000_C,
+											numid_party_d = IMD5000_D,
+											numid_party_e = IMD5000_E,
+											numid_party_f = IMD5000_F,
+											numid_party_g = IMD5000_G,
+											numid_party_h = IMD5000_H,
+											numid_party_i = IMD5000_I
+										  ) %>%
+										  select(
+											id,
+											closestpartyuniqueid,
+											numid_party_a,
+											numid_party_b,
+											numid_party_c,
+											numid_party_d,
+											numid_party_e,
+											numid_party_f,
+											numid_party_g,
+											numid_party_h,
+											numid_party_i
+										  )
+		nrow(CSES_IMD_4_CLEAN)
+		head(CSES_IMD_4_CLEAN)
+
+	# now merge in what I need from the IMD data
+	
+		nrow(CSES4_CLEAN)
+		CSES4_CLEAN <- CSES4_CLEAN %>%
+							  left_join(CSES_IMD_4_CLEAN, by = "id") 
+		nrow(CSES4_CLEAN)
+		head(CSES4_CLEAN)
+
+
+## OK, so as a first step, lets have a look at the unique identifier of the party I feel closest to (taken from the IMD codebook as IMD3005_3
+	
+	CSES4_CLEAN$closestpartyuniqueid # this is the unique indentifier of the party I am closest to
+	table(CSES4_CLEAN$closestpartyuniqueid)
+	
+## NOW, lets inspect who party A id for all the repondents, this should be the same within all the countries
+		table(CSES4_CLEAN$numid_party_a, CSES4_CLEAN$country)
+		table(CSES4_CLEAN$numid_party_b, CSES4_CLEAN$country)
+			
+	
+	# the like/dislike variables for party A e.t.c. are here "IMD3008_A - IMD3008_I #(do we need to think about the last three being optional?)
+
 
 #################################### somewhere around here is probably where new merging in of parlgov ids from the CSES_IMD data (are already loaded on line 43)
 								   # file needs to happen (as in the next step a filter is applied that needs this info)
 
+	# some suggested pseudocode / steps from Tomas here
+		
+		# merge in TWO parlgov party ids from CSES_IMD on participant id ('id')
+			
+			# the parlgov id related to 'D3018_3'? (?!?the party one voted for?!? )
+			
+			# the parlgov ids related to the D3011_A - D3011_I variables? so for each variable, what party actually affective polarisation was measured for
+			
+			# make a dummy that checks if the parlgov id one voted for occurs in any of the columns that specify the parlgov ids of all those parties affective 
+				# polarisation was measured for, so that this dummy can be used for the filter below around line 135.
 
 #################################### ANALYTICAL SAMPLE selection
 
@@ -238,24 +318,37 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			table(CSES4_SAMPLE$country) # indeed close again, would like to at some point understand the missingness mechanism though.
 
 ################################## the CSES4_SAMPLE data is MERGED INTO the simularity data from the clustering script 
+
+
+### START OF NEW CODE TO MATCH PARTY TO ITS CORRECT POLARISATION MEASURE
+
+	# OK, so I can't actually wrap my head around how this needs to be done. 
+	
+		# maybe make a seperate long (because 10 rows per participant) dataframe that contains three types of columns, I will call it AFFLONG for now
+			# participant id (1) # parlgov id of own party (1) # parlgov id of the party one was asked to rate (10 rows) # matching rating for this specific party (10 rows)
+
+		# hopefully his code can be of some inspiration here.
+
+### END OF NEW CODE TO MATCH PARTY TO ITS CORRECT POLARISATION MEASURE
+
 	# (please note that as here we are working with the very BIG and long dataset, opperations are quite slow.)
 
 	# get the party from CSES4_SAMPLE for the 'sending' participant (x)
-	allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE)
+	allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE) # Here, you probably want to merge in the parlgov id of the party?
 	head(allsimdata1)
 	tail(allsimdata1)
 	table(allsimdata1$party)
 	table(allsimdata1$country)
 
 	#  get the party from CSES4_SAMPLE for the 'receiving' participant (y)
-	allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE)
+	allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE) # also parlgov id here?
 	head(allsimdata2)
 	table(allsimdata2$party.x)
 	table(allsimdata2$party.y)
 	table(allsimdata2$country) # again, the reduced scope in terms of countries
 
-	# create the crucial ingroup/outgroup variable (@Felicity: please note that this is done correctly, the party ids are consistent between participants).
-		# filter to selct only those who support a party in aff_pol1-4 # <-- Tomas: I don't understand this comment.
+	# create the crucial ingroup/outgroup variable (@Felicity: please note that this was done correctly already, the party ids are consistent between participants).
+		# filter to selct only those who support a party in aff_pol1-4 # <-- Tomas: I don't understand this comment. This exact same code should also work if not the numbers 0-9 but the parlgov id is used I think.
 			finalsimdata1 <- allsimdata2 %>% 
 			  mutate(match         = paste(party.x,party.y,sep="_"),
 					 ingroup       = ifelse(party.x == party.y, "ingroup","outgroup")
@@ -264,7 +357,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			
 			head(finalsimdata1)
 
-	# I think this is just a relabbeling exercise
+	# I think this is just a relabbeling exercise # note that this won't work like this anymore when the parlgov ids of the parties are used -- instead, this probably needs to be a merge/query from the dataframe 'AFFLONG' I suggested above. But here I get quite lost.
 		finalsimdata <- finalsimdata1 %>% 
 		  mutate(target = ifelse(party.y==1,"partya",
 								  ifelse(party.y==2,"partyb",
@@ -303,7 +396,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		# again, relabbeling for later
 			logic_cont <- rename(logic_cont, partytarget = target)
 			head(logic_cont)
-			
+	
+
 			logic_cont <- logic_cont %>%
 							  mutate(target = ifelse(partytarget == "partya", "polar_1",
 													ifelse(partytarget == "partyb", "polar_2", 
@@ -315,6 +409,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 																							  ifelse(partytarget == "partyh","polar_8", 
 																									 ifelse(partytarget == "partyi","polar_9", NA))))))))))
 			head(logic_cont)
+
 
 ############################ Make MLM dataset
 
