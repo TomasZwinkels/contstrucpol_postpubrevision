@@ -536,7 +536,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			LOCO <- rename(LOCO, partytarget = closestpartyuniqueid.y)
 			head(LOCO)
 			
-######### merge the participant specific partyid and country_election level values into our new long data
+######### merge the participant specific partyid and country_election level values into our new long data, to get the data into the format we need for our analysis
 
 		# sqldf version
 	#	FINDAT <- sqldf("SELECT CSES4_LONG.*, LOCO.logic, LOCO.contentdif
@@ -561,78 +561,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		table(is.na(FINDAT$logic))
 		table(is.na(FINDAT$contentdif))
 		
-		length()
-		
-
-################################## the CSES4_SAMPLE data is MERGED INTO the simularity data from the clustering script 
-
-### START OF NEW CODE TO MATCH PARTY TO ITS CORRECT POLARISATION MEASURE
-##
-
-			##### TOMAS NOTE TO SELF: YOU ARE HERE
-
-##
-##
-
-	# OK, so I can't actually wrap my head around how this needs to be done. 
-	
-		# maybe make a seperate long (because 10 rows per participant) dataframe that contains three types of columns, I will call it AFFLONG for now
-			# participant id (1) # parlgov id of own party (1) # parlgov id of the party one was asked to rate (10 rows) # matching rating for this specific party (10 rows)
-
-		# hopefully his code can be of some inspiration here.
-
-### END OF NEW CODE TO MATCH PARTY TO ITS CORRECT POLARISATION MEASURE
-
-
-
-	# create the crucial ingroup/outgroup variable (@Felicity: please note that this was done correctly already, the party ids are consistent between participants).
-		# filter to selct only those who support a party in aff_pol1-4 # <-- Tomas: I don't understand this comment. This exact same code should also work if not the numbers 0-9 but the parlgov id is used I think.
-		# are the double elections an issue here?
-		
-			finalsimdata1 <- allsimdata2 %>% 
-			  mutate(match         = paste(closestpartyuniqueid.x,closestpartyuniqueid.y,sep="_"),
-					 ingroup       = ifelse(closestpartyuniqueid.x == closestpartyuniqueid.y, "ingroup","outgroup")		 
-			  )
-			
-			head(finalsimdata1)
-
-		# this data is still diadic
-
-	# for as far as I can oversee, everything up until here is correct now, I think the bit below needs to be reworked quite a lot.
-
-# OK, so my approach will probably be:
-
-	
-		
-		# please note that the 'logic' etc dataframes below can be be organised to be even 'longer' as long as I can merge the result in on unique party id + country_election
-		
-
-
-
-	# I think this is just a relabbeling exercise # note that this won't work like this anymore when the unique ids of the parties are used -- instead, this probably needs to be a merge/query from the dataframe 'AFFLONG' I suggested above. But here I get quite lost.
-		finalsimdata <- finalsimdata1 %>% 
-		  mutate(target = ifelse(party.y==1,"partya",
-								  ifelse(party.y==2,"partyb",
-										 ifelse(party.y==3,"partyc",
-												ifelse(party.y==4,"partyd",
-													   ifelse(party.y==5,"partye",
-															  ifelse(party.y==6,"partyf",
-																	 ifelse(party.y==7,"partyg",
-																			ifelse(party.y==8,"partyh",
-																				   ifelse(party.y==9,"partyi",999))))))))))
-		head(finalsimdata)
-		
-		# variable renaming as below content_sim is used
-		colnames(finalsimdata)[colnames(finalsimdata) == "content.sim"] <- "content_sim"
-		head(finalsimdata)
-		
-		summary(finalsimdata$content_sim)
-		table(is.na(finalsimdata$content_sim))
 		
 # now  make a variable that takes the pps mean over ingroup matches and outgroup matches
-
-	
-	
 
 			logic_cont <- logic_cont %>%
 							  mutate(target = ifelse(partytarget == "partya", "polar_1",
