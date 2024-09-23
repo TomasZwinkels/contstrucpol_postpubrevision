@@ -53,7 +53,7 @@
 	length(CSES_IMD_4$IMD1005) == length(unique(CSES_IMD_4$IMD1005)) # should return TRUE, so not unique..
 	
 #################################### select data
-CSES4_SELECT <- CSES4    %>%  select(D1005, D1006_UN, D1006_NAM, D3014, D3001_1, D3001_2, D3001_3, D3001_4, D3001_5, D3001_6, D3001_7, D3001_8, 
+CSES4_SELECT <- CSES4    %>%  select(D1005, D1006_UN, D1006_NAM,D1004,D1008, D3014, D3001_1, D3001_2, D3001_3, D3001_4, D3001_5, D3001_6, D3001_7, D3001_8, 
                                      D3011_A, D3011_B, D3011_C, D3011_D, D3011_E, D3011_F, D3011_G, D3011_H, D3011_I, D5201_A, D5201_B, D5201_C, D5201_D, D5201_E, D5201_F, D5201_G, D5201_H, D5201_I, 
                                      D3008_LH_PL, D3018_4, D3018_3,
                                      D2002, D2001_Y, D2003, D2020, D2030, D1028)  
@@ -62,6 +62,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                         country_num = as.numeric(D1006_UN),
                                         country = D1006_NAM,
 										country_election = D1004,
+										election_year = D1008,
                                         ideology= ifelse(D3014<11, D3014, NA),
                                         health  = ifelse(D3001_1<6, D3001_1, NA),
                                         educ    = ifelse(D3001_2<6, D3001_2, NA),
@@ -155,7 +156,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 											affpol_party_F = IMD3008_F,
 											affpol_party_G = IMD3008_G,
 											affpol_party_H = IMD3008_H,
-											affpol_party_I = IMD3008_I
+											affpol_party_I = IMD3008_I,
+											country_election_imd = IMD1004
 										  ) %>%
 										  select(
 											id,
@@ -177,7 +179,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 											affpol_party_F,
 											affpol_party_G,
 											affpol_party_H,
-											affpol_party_I
+											affpol_party_I,
+											country_election_imd
 										  )
 
 		nrow(CSES_IMD_4_CLEAN)
@@ -226,8 +229,14 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 #### make a country/election level variable (used to be 'country' but we want the simularity measures e.t.c. at the country/election level, not the country level -
 	#> noting that some countries, e.g. candada ran the survey twice as part of wave 4 as there where two elections)
 
-	CSES4_CLEAN$country_elec <- paste(CSES4_CLEAN$,CSES4_CLEAN$country,sep="_")
-
+	table(paste(CSES4_CLEAN$election_year,CSES4_CLEAN$country,sep="_"))
+	table(is.na(CSES4_CLEAN$election_year))
+	table(is.na(CSES4_CLEAN$country))
+	
+	# /\ these two tables should be the same \/ looks like they are
+	table(CSES4_CLEAN$country_election)
+	
+	table(CSES4_CLEAN$country_election_imd)
 
 ## OK, so as a first step, lets have a look at the unique identifier of the party I feel closest to (taken from the IMD codebook as IMD3005_3
 	
@@ -242,6 +251,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		table(CSES4_CLEAN$closestpartyuniqueid)
 		table(is.na(CSES4_CLEAN$closestpartyuniqueid)) # note that these NA scores are not the same, but this is due to the 44 swiss cases that John also identified that do not get a letter score anyways
 		
+
 	
 ## NOW, lets inspect who party A id for all the repondents, this should be the same within all the countries -- yes, this is the pattern one would expect. 
 		table(CSES4_CLEAN$numid_party_a, CSES4_CLEAN$country)
@@ -281,32 +291,78 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 # As per pre-reg remove pps for whom n>= 2 beleif system items are absent
 
-	##filter if party is not measured in liking (i.e., party must be 1-9, if belief system items do not have more than 2 missing, )
-	CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs<2) # should be 2 or more i.e.,  <3 
+	## filter if belief system items do not have more than 2 missing
 	
-	## and if there are at least 20 party supporters for each group
-	CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>% 
-	  group_by(country, party) %>% 
-	  filter(n() >20) %>% 
-	  ungroup()
+		nrow(CSES4_CLEAN)
+		
+			CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(na_bs < 2) # should be 2 or more i.e.,  # used to say: CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs < 2)
+		
+		nrow(CSES4_SAMPLE_P1)
+		
+	## also, for your party, affective polarization needs to be measured somewhere
+	
+		nrow(CSES4_SAMPLE_P1)
+		
+			# get a variable that tells me if it was measured somewhere
+				resvec <- vector()
+				pb = txtProgressBar(min = 0, max = nrow(CSES4_SAMPLE_P1), initial = 0) 
+				for(i in 1:nrow(CSES4_SAMPLE_P1))
+				{
+					# get a vector with all party ids available for Mean
+					allpartyidsavail <- c(
+										  CSES4_CLEAN$numid_party_a[i],
+										  CSES4_CLEAN$numid_party_b[i],
+										  CSES4_CLEAN$numid_party_c[i],
+										  CSES4_CLEAN$numid_party_d[i],
+										  CSES4_CLEAN$numid_party_e[i],
+										  CSES4_CLEAN$numid_party_f[i],
+										  CSES4_CLEAN$numid_party_g[i],
+										  CSES4_CLEAN$numid_party_h[i],
+										  CSES4_CLEAN$numid_party_i[i]
+										)
+					
+					resvec[i] <- CSES4_CLEAN$closestpartyuniqueid[i] %in% allpartyidsavail
+					setTxtProgressBar(pb,i)
+				}
+				close(pb)
+				
+				CSES4_SAMPLE_P1$ismypartymeasured <- resvec
+			
+				table(CSES4_SAMPLE_P1$ismypartymeasured)
+				
+			# do the reduction
+				CSES4_SAMPLE_P2 <- CSES4_SAMPLE_P1[which(CSES4_SAMPLE_P1$ismypartymeasured),]
+		
+		nrow(CSES4_SAMPLE_P2)
+		
+	## and if there are at least 20 party supporters for each group in this 
+	
+		nrow(CSES4_SAMPLE_P2)
+		
+			CSES4_SAMPLE <- CSES4_SAMPLE_P2 %>% 
+			  group_by(country_election, closestpartyuniqueid) %>% 
+			  filter(n() >20) %>% 
+			  ungroup()
+		  
+		nrow(CSES4_SAMPLE)
 
 	# some inspections
-                # get number of cases per country 
+                # get number of cases per country_election 
                    CSES4_SAMPLE %>% 
-                     group_by(country) %>% 
+                     group_by(country_election) %>% 
                      summarise(n = n())
                    
-				# get number of cases per country starting with smallest cases per country
+				# get number of cases per country_election starting with smallest cases per country_election
                    CSES4_SAMPLE %>% 
-                      count(country) %>% 
+                      count(country_election) %>% 
                      arrange(n)
              
 				# check missingness
                       CSES4_SAMPLE %>% 
-                        group_by(country,party) %>% 
+                        group_by(country_election,closestpartyuniqueid) %>% 
                         summarise(n = n())
                       
-                      table(CSES4_SAMPLE$country, CSES4_SAMPLE$party)  
+                      table(CSES4_SAMPLE$country_election, CSES4_SAMPLE$closestpartyuniqueid)  
                       table(CSES4_SAMPLE$na_bs)
                       
 ############################################ Make BS similarity
