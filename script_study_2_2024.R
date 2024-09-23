@@ -562,19 +562,44 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		table(is.na(FINDAT$contentdif))
 		
 		
-# now  make a variable that takes the pps mean over ingroup matches and outgroup matches
+#### now  make a variable that tell me if a row is ingroup or outgroup (was called affpoldummy before in Felicity' code)
 
-			logic_cont <- logic_cont %>%
-							  mutate(target = ifelse(partytarget == "partya", "polar_1",
-													ifelse(partytarget == "partyb", "polar_2", 
-														   ifelse(partytarget == "partyc","polar_3", 
-																  ifelse(partytarget == "partyd","polar_4", 
-																		 ifelse(partytarget == "partye","polar_5", 
-																				ifelse(partytarget == "partyf","polar_6", 
-																					   ifelse(partytarget == "partyg","polar_7", 
-																							  ifelse(partytarget == "partyh","polar_8", 
-																									 ifelse(partytarget == "partyi","polar_9", NA))))))))))
-			head(logic_cont)
+	FINDAT$affpoldummy <- ifelse(FINDAT$closestpartyuniqueid == FINDAT$numid_value,"ingroup","outgroup")
+	table(FINDAT$affpoldummy)
+	table(is.na(FINDAT$affpoldummy))
+	
+#### merge this whole new shabang with CSES4_SAMPLE
+
+	# sqldf version
+	#	mlm.dat <- sqldf("SELECT FINDAT.numid_party, FINDAT.numid_value, FINDAT.logic, FINDAT.contentdif, FINDAT.affpoldummy, CSES4_SAMPLE.*
+	#			   FROM FINDAT
+	#			   LEFT JOIN CSES4_SAMPLE ON (
+	#				   FINDAT.id = CSES4_SAMPLE.id
+	#			   )")
+
+	# dplyr version
+		mlm.dat <- FINDAT %>%
+						  left_join(CSES4_SAMPLE, by = "id") %>%
+						  select(numid_party, numid_value, logic, contentdif, affpoldummy, everything())
+		nrow(FINDAT)
+		nrow(mlm.dat) # or
+		nrow(CSES4_SAMPLE)
+	
+		# inspect one case to see what is going wrong
+		
+		# selecting an ID I know exists
+		head(CSES4_SAMPLE$id)
+		"036020130001006565" %in% CSES4_SAMPLE$id 
+		
+		# now lets inspect both
+		as.data.frame(mlm.dat[which(mlm.dat$id =="036020130001006565"),])
+		as.data.frame(CSES4_SAMPLE[which(CSES4_SAMPLE$id =="036020130001006565"),])
+		
+		
+		
+		
+
+
 
 
 ############################ Make MLM dataset
