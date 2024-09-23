@@ -72,26 +72,26 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                         busines = ifelse(D3001_6<6, D3001_6, NA),
                                         crime   = ifelse(D3001_7<6, D3001_7, NA),
                                         welfare = ifelse(D3001_8<6, D3001_8, NA),
-                                        polar_1 = as.numeric(ifelse(D3011_A<11, D3011_A, NA)), # we drop these here, because we would like to take them from IMD
-                                        polar_2 = as.numeric(ifelse(D3011_B<11, D3011_B, NA)),
-                                        polar_3 = as.numeric(ifelse(D3011_C<11, D3011_C, NA)),
-                                        polar_4 = as.numeric(ifelse(D3011_D<11, D3011_D, NA)),
-                                        polar_5 = as.numeric(ifelse(D3011_E<11, D3011_E, NA)),
-                                        polar_6 = as.numeric(ifelse(D3011_F<11, D3011_F, NA)),
-                                        polar_7 = as.numeric(ifelse(D3011_G<11, D3011_G, NA)),
-                                        polar_8 = as.numeric(ifelse(D3011_H<11, D3011_H, NA)),
-                                        polar_9 = as.numeric(ifelse(D3011_I<11, D3011_I, NA)),
-                                        partya  = ifelse(D5201_A==9999,NA,D5201_A),
-                                        partyb  = ifelse(D5201_B==9999,NA,D5201_B),
-                                        partyc  = ifelse(D5201_C==9999,NA,D5201_C),
-                                        partyd  = ifelse(D5201_D==9999,NA,D5201_D),
-                                        partye  = ifelse(D5201_E==9999,NA,D5201_E),
-                                        partyf  = ifelse(D5201_F==9999,NA,D5201_F),
-                                        partyg  = ifelse(D5201_G==9999,NA,D5201_G),
-                                        partyh  = ifelse(D5201_H==9999,NA,D5201_H),
-                                        partyi  = ifelse(D5201_I==9999,NA,D5201_I),
+                                #        polar_1 = as.numeric(ifelse(D3011_A<11, D3011_A, NA)), # we drop these here, because we would like to take them from IMD
+                                #        polar_2 = as.numeric(ifelse(D3011_B<11, D3011_B, NA)),
+                                #        polar_3 = as.numeric(ifelse(D3011_C<11, D3011_C, NA)),
+                                #        polar_4 = as.numeric(ifelse(D3011_D<11, D3011_D, NA)),
+                                #        polar_5 = as.numeric(ifelse(D3011_E<11, D3011_E, NA)),
+                                #        polar_6 = as.numeric(ifelse(D3011_F<11, D3011_F, NA)),
+                                #        polar_7 = as.numeric(ifelse(D3011_G<11, D3011_G, NA)),
+                                #        polar_8 = as.numeric(ifelse(D3011_H<11, D3011_H, NA)),
+                                #        polar_9 = as.numeric(ifelse(D3011_I<11, D3011_I, NA)),
+                                #        partya  = ifelse(D5201_A==9999,NA,D5201_A),
+                                #        partyb  = ifelse(D5201_B==9999,NA,D5201_B),
+                                #        partyc  = ifelse(D5201_C==9999,NA,D5201_C),
+                                #        partyd  = ifelse(D5201_D==9999,NA,D5201_D),
+                                #        partye  = ifelse(D5201_E==9999,NA,D5201_E),
+                                #        partyf  = ifelse(D5201_F==9999,NA,D5201_F),
+                                #        partyg  = ifelse(D5201_G==9999,NA,D5201_G),
+                                #        partyh  = ifelse(D5201_H==9999,NA,D5201_H),
+                                #        partyi  = ifelse(D5201_I==9999,NA,D5201_I),
                                         lowhouse=D3008_LH_PL,
-                                        party   = ifelse(as.numeric(D3018_3)>88,NA,as.numeric(D3018_3)), # this missingness recoding on this used to be somewhere else I think, now doing it here
+                                #        party   = ifelse(as.numeric(D3018_3)>88,NA,as.numeric(D3018_3)), # this missingness recoding on this used to be somewhere else I think, now doing it here
                                        closest  = D3018_4,
                                        gender   = ifelse(D2002==1,-1,                                       # makes controls as per pre-reg
                                                                ifelse(D2002 ==2,1,NA)),
@@ -210,7 +210,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			  starts_with("affpol_party_"),
 			  ~ ifelse(. > 90, NA, .)
 			),
-			# Replace values == 88 with NA for numid_party_* variables
+			# Replace values > 9000000 with NA for numid_party_* variables
 			across(
 			  starts_with("numid_party_"),
 			  ~ ifelse(. > 9000000, NA, .)
@@ -219,6 +219,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 	# after
 	summary(CSES4_CLEAN)
+	table(is.na(CSES4_CLEAN$closestpartyuniqueid))
 	
 	# and preregistered kick out criteria
 	
@@ -308,7 +309,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 				pb = txtProgressBar(min = 0, max = nrow(CSES4_SAMPLE_P1), initial = 0) 
 				for(i in 1:nrow(CSES4_SAMPLE_P1))
 				{
-					# get a vector with all party ids available for Mean
+					# get a vector with all party ids available for me
 					allpartyidsavail <- c(
 										  CSES4_CLEAN$numid_party_a[i],
 										  CSES4_CLEAN$numid_party_b[i],
@@ -345,6 +346,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			  ungroup()
 		  
 		nrow(CSES4_SAMPLE)
+		
+		summary(CSES4_SAMPLE)
 
 	# some inspections
                 # get number of cases per country_election 
@@ -364,7 +367,11 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                       
                       table(CSES4_SAMPLE$country_election, CSES4_SAMPLE$closestpartyuniqueid)  
                       table(CSES4_SAMPLE$na_bs)
-                      
+					  nrow(CSES4_SAMPLE)
+    
+	TIXCHECKDAT <- CSES4_SAMPLE[which(!is.na(CSES4_SAMPLE$closestpartyuniqueid)),]
+	nrow(TIXCHECKDAT)
+	
 ############################################ Make BS similarity
              
 ################################## clustering script
@@ -389,14 +396,14 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	#check if it is registered (optional)
 	foreach::getDoParRegistered()
 
-######### run the loop, fast version with transposed matrix       
+######### run the loop, fast version with transposed matrix (getting the diadic data)      
 
 	DATAFORLOOP <- CSES4_SAMPLE
 
-	foreachlist <- foreach(cname = names(table(DATAFORLOOP$country)),
+	foreachlist <- foreach(cname = names(table(DATAFORLOOP$country_election)),
                       .packages= c("dplyr", "corrr", "rio", "tidyverse", "sjlabelled"))  %dopar% {
                         
-                        dat_selectloop <- DATAFORLOOP[which(DATAFORLOOP$country == cname),]
+                        dat_selectloop <- DATAFORLOOP[which(DATAFORLOOP$country_election == cname),]
                         
                         #if(length(table(duplicated(dat_selectloop$id)))>1)
                         #{
@@ -430,7 +437,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                         allsimdata <- as.data.frame(attitude_compare)
                         supp <- t(transposed_supp)
                         allsimdata$content.sim <- rowMeans(abs(supp[allsimdata[,1], ] - supp[allsimdata[,2], ] ),  na.rm = TRUE)
-                        allsimdata$country <- cname
+                        allsimdata$country_election <- cname
 
                        allsimdata
                       } 
@@ -440,24 +447,132 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 	# bunch of inspections from Tomas
 
-		# check newdf for country completeness
-		table(names(table(newdf$country)) == names(table(CSES4_SAMPLE$country))) # should return TRUE only
+		# check newdf for country_election completeness
+		table(names(table(newdf$country_election)) == names(table(CSES4_SAMPLE$country_election))) # should return TRUE only
 
 		# check if the basis structure of newdf is what one would expect it to be
 			head(newdf)
+			nrow(newdf)
 			nrow(newdf[which(newdf$x == "036020130001000794"),]) # should be the sample size of australia
-			table(CSES4_SAMPLE$country) # gets close, I guess there was probably some missingness on some variables. -- 
-			# question for Felicity: do we understand why there are 3177 participants in australie but we only have simularity data for 3133 of them?
-			table(CSES4_SAMPLE$country,CSES4_SAMPLE$na_bs)
+			table(CSES4_SAMPLE$country_election) # gets close, I guess there was probably some missingness on some variables. -- 
+			table(CSES4_SAMPLE$country_election,CSES4_SAMPLE$na_bs)
 	
-			tail(newdf)
-			nrow(newdf[which(newdf$x == "840020120000002055"),]) # should be around the sample size of the USA
-			table(CSES4_SAMPLE$country) # indeed close again, would like to at some point understand the missingness mechanism though.
+################################## NEW final steps of the data buildup
+
+######### buildup an 'empty' dataframe with the structure we know we need (so, 9 rows per participant - one for each party)
+
+	## UOA: relation with parties within participants (9 per participant, one for each party affective polarisation was measured for)
+	# Reshape the data from wide to long format, keeping only some core columns we need to for matching later
+		CSES4_LONG <- CSES4_CLEAN %>%
+		  select(id, country_election, closestpartyuniqueid, starts_with("numid_party_")) %>%  # Keep only necessary columns
+		  pivot_longer(
+			cols = starts_with("numid_party_"),  # Select columns to pivot (numid_party_a to numid_party_i)
+			names_to = "numid_party",            # New column for party identifiers (a-i)
+			values_to = "numid_value"            # New column for the values of numid_party
+		  )
+
+	# View the reshaped data
+		CSES4_LONG[0:20,]
+		
+	# show me the greek data # we checked this against Felicity' checks, this looks good.
+		table(CSES4_LONG$country_election)
+		GR <- CSES4_LONG[which(CSES4_LONG$country_election == "GRC_2012" | CSES4_LONG$country_election == "GRC_2015"),]
+		nrow(GR)
+		table(GR$numid_party,GR$numid_value,GR$country_election)
+		GR[0:20,]
+
+######### get party into the diadic data from newdf, using the old code but using closestpartyuniqueid instead of party, from the cluster script we also have country_election
+	
+	## UOA: diadic between all participants
+	# get the party (closestpartyuniqueid) from CSES4_SAMPLE for the 'sending' participant (x)
+		allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "closestpartyuniqueid")], by.x = "x", by.y = "id",all.x=TRUE) # done now -> # Here, you probably want to merge in the unique id of the party?
+		nrow(allsimdata1)
+		head(allsimdata1)
+		tail(allsimdata1)
+		#table(allsimdata1$closestpartyuniqueid)
+		#table(allsimdata1$country_election)
+
+	#  get the party (closestpartyuniqueid) from CSES4_SAMPLE for the 'receiving' participant (y)
+		allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "closestpartyuniqueid")], by.x = "y", by.y = "id",all.x=TRUE) # done now -> # also unique id here?
+		nrow(allsimdata2)
+		head(allsimdata2)
+		
+		# making sure closestpartyuniqueid.y here is indeed what I think it is # answer, yes it is, closestpartyuniqueid.y is the party of the other
+		as.data.frame(CSES4_SAMPLE[which(CSES4_SAMPLE$id == "036020130007949553"),])
+		as.data.frame(CSES4[which(CSES4$D1005 == "036020130007949553"),])
+		
+		tail(allsimdata2)
+		#table(allsimdata2$closestpartyuniqueid.x)
+		#table(allsimdata2$closestpartyuniqueid.y)
+		#table(allsimdata2$country_election) 
+
+######### aggregate diadic data to the party and country_election level
+
+	## here the diadic data is tranformed to parties within participant level data
+		# new level of analysis: from diadic to partipant = all parties in country-election -- and this is the final unit of analysis!
+			# note: needs to target (now: closestpartyuniqueid.y, so the party of the other participants) as well as country_election (we need to make sure that elections are seperated)
+
+		# create two dataframes, one for logic and one for content
+			logic <-   aggregate(logic       ~x+closestpartyuniqueid.y+country_election, mean, data = allsimdata2, na.action = na.omit) # lets add country election here!
+			head(logic)
+			
+			nrow(logic) # does the size of this reduction make sense?
+			table(logic$closestpartyuniqueid.y)
+			
+			# still 9 observations per participant?
+				logic[which(logic$x == "036020130001000794"),] # only 4, but that might because of NA's?
+				table(allsimdata2[which(allsimdata2$x == "036020130001000794"),]$closestpartyuniqueid.y) # indeed 
+			
+			content <- aggregate(content.sim ~x+closestpartyuniqueid.y+country_election, mean, data = allsimdata2, na.action = na.omit)
+			head(content)
+		
+		# combine them
+			LOCO <- merge(logic, content, by = c('x','closestpartyuniqueid.y','country_election'))
+			LOCO <- LOCO %>% rename(  id = x,
+												  contentdif = content.sim )
+			head(LOCO)
+        
+		# again, relabbeling for later
+			LOCO <- rename(LOCO, partytarget = closestpartyuniqueid.y)
+			head(LOCO)
+			
+######### merge the participant specific partyid and country_election level values into our new long data
+
+		# sqldf version
+	#	FINDAT <- sqldf("SELECT CSES4_LONG.*, LOCO.logic, LOCO.contentdif
+	#			   FROM CSES4_LONG
+	#			   LEFT JOIN LOCO ON (
+	#				   CSES4_LONG.id = LOCO.id AND
+	#				   CSES4_LONG.numid_value = LOCO.partytarget AND
+	#				   CSES4_LONG.country_election = LOCO.country_election
+	#			   )")
+		
+		# dplyer version
+		FINDAT <- CSES4_LONG %>%
+					  left_join(LOCO, by = c(
+						"id" = "id",
+						"numid_value" = "partytarget",
+						"country_election" = "country_election"
+					  )) %>%
+					  select(everything(), logic, contentdif)
+
+		FINDAT[0:20,]
+		
+		table(is.na(FINDAT$logic))
+		table(is.na(FINDAT$contentdif))
+		
+		length()
+		
 
 ################################## the CSES4_SAMPLE data is MERGED INTO the simularity data from the clustering script 
 
-
 ### START OF NEW CODE TO MATCH PARTY TO ITS CORRECT POLARISATION MEASURE
+##
+
+			##### TOMAS NOTE TO SELF: YOU ARE HERE
+
+##
+##
 
 	# OK, so I can't actually wrap my head around how this needs to be done. 
 	
@@ -468,33 +583,33 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 ### END OF NEW CODE TO MATCH PARTY TO ITS CORRECT POLARISATION MEASURE
 
-	# (please note that as here we are working with the very BIG and long dataset, opperations are quite slow.)
 
-	# get the party from CSES4_SAMPLE for the 'sending' participant (x)
-	allsimdata1 <- merge(x = newdf,        y = CSES4_SAMPLE[ , c("id", "party")], by.x = "x", by.y = "id",all.x=TRUE) # Here, you probably want to merge in the parlgov id of the party?
-	head(allsimdata1)
-	tail(allsimdata1)
-	table(allsimdata1$party)
-	table(allsimdata1$country)
-
-	#  get the party from CSES4_SAMPLE for the 'receiving' participant (y)
-	allsimdata2 <- merge(x = allsimdata1,  y = CSES4_SAMPLE[ , c("id", "party")], by.x = "y", by.y = "id",all.x=TRUE) # also parlgov id here?
-	head(allsimdata2)
-	table(allsimdata2$party.x)
-	table(allsimdata2$party.y)
-	table(allsimdata2$country) # again, the reduced scope in terms of countries
 
 	# create the crucial ingroup/outgroup variable (@Felicity: please note that this was done correctly already, the party ids are consistent between participants).
 		# filter to selct only those who support a party in aff_pol1-4 # <-- Tomas: I don't understand this comment. This exact same code should also work if not the numbers 0-9 but the parlgov id is used I think.
+		# are the double elections an issue here?
+		
 			finalsimdata1 <- allsimdata2 %>% 
-			  mutate(match         = paste(party.x,party.y,sep="_"),
-					 ingroup       = ifelse(party.x == party.y, "ingroup","outgroup")
-					 
+			  mutate(match         = paste(closestpartyuniqueid.x,closestpartyuniqueid.y,sep="_"),
+					 ingroup       = ifelse(closestpartyuniqueid.x == closestpartyuniqueid.y, "ingroup","outgroup")		 
 			  )
 			
 			head(finalsimdata1)
 
-	# I think this is just a relabbeling exercise # note that this won't work like this anymore when the parlgov ids of the parties are used -- instead, this probably needs to be a merge/query from the dataframe 'AFFLONG' I suggested above. But here I get quite lost.
+		# this data is still diadic
+
+	# for as far as I can oversee, everything up until here is correct now, I think the bit below needs to be reworked quite a lot.
+
+# OK, so my approach will probably be:
+
+	
+		
+		# please note that the 'logic' etc dataframes below can be be organised to be even 'longer' as long as I can merge the result in on unique party id + country_election
+		
+
+
+
+	# I think this is just a relabbeling exercise # note that this won't work like this anymore when the unique ids of the parties are used -- instead, this probably needs to be a merge/query from the dataframe 'AFFLONG' I suggested above. But here I get quite lost.
 		finalsimdata <- finalsimdata1 %>% 
 		  mutate(target = ifelse(party.y==1,"partya",
 								  ifelse(party.y==2,"partyb",
@@ -515,24 +630,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		table(is.na(finalsimdata$content_sim))
 		
 # now  make a variable that takes the pps mean over ingroup matches and outgroup matches
-		# (lots of aggregation here, so after the steps below things will become quite a bit faster again)
 
-		# create two dataframes, one for logic and one for content
-			logic <-   aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
-			head(logic)
-			
-			content <- aggregate(content_sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
-			head(content)
-		
-		# combine them
-			logic_cont <- merge(logic, content, by = c('x','target'))
-			logic_cont <- logic_cont %>% rename(  id = x,
-												  contentdif = content_sim )
-			head(logic_cont)
-        
-		# again, relabbeling for later
-			logic_cont <- rename(logic_cont, partytarget = target)
-			head(logic_cont)
+	
 	
 
 			logic_cont <- logic_cont %>%
