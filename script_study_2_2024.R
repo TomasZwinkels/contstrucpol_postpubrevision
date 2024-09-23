@@ -61,6 +61,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                 mutate(id       = D1005,
                                         country_num = as.numeric(D1006_UN),
                                         country = D1006_NAM,
+										country_election = D1004,
                                         ideology= ifelse(D3014<11, D3014, NA),
                                         health  = ifelse(D3001_1<6, D3001_1, NA),
                                         educ    = ifelse(D3001_2<6, D3001_2, NA),
@@ -89,7 +90,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                         partyh  = ifelse(D5201_H==9999,NA,D5201_H),
                                         partyi  = ifelse(D5201_I==9999,NA,D5201_I),
                                         lowhouse=D3008_LH_PL,
-                                        party   = as.numeric(D3018_3),
+                                        party   = ifelse(as.numeric(D3018_3)>88,NA,as.numeric(D3018_3)), # this missingness recoding on this used to be somewhere else I think, now doing it here
                                        closest  = D3018_4,
                                        gender   = ifelse(D2002==1,-1,                                       # makes controls as per pre-reg
                                                                ifelse(D2002 ==2,1,NA)),
@@ -121,7 +122,8 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                                               is.na(bs_crime  )+
                                                               is.na(bs_welfare)
                                                  )
-												 
+							
+								
 ### here, I use the participant ID to merge in whatever info I need from CSES_IMD_4
 
 	# lets first make CSES_IMD_4 make a bit more sense
@@ -130,8 +132,9 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		head(CSES_IMD_4)
 		
 		table(CSES_IMD_4$IMD5000_A)
+		names()
 		
-		CSES_IMD_4_CLEAN <- CSES_IMD_4  %>% 
+	CSES_IMD_4_CLEAN <- CSES_IMD_4  %>% 
 										  mutate(
 											id = IMD1005,
 											closestpartyuniqueid = IMD3005_3,
@@ -143,7 +146,16 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 											numid_party_f = IMD5000_F,
 											numid_party_g = IMD5000_G,
 											numid_party_h = IMD5000_H,
-											numid_party_i = IMD5000_I
+											numid_party_i = IMD5000_I,
+											affpol_party_A = IMD3008_A,
+											affpol_party_B = IMD3008_B,
+											affpol_party_C = IMD3008_C,
+											affpol_party_D = IMD3008_D,
+											affpol_party_E = IMD3008_E,
+											affpol_party_F = IMD3008_F,
+											affpol_party_G = IMD3008_G,
+											affpol_party_H = IMD3008_H,
+											affpol_party_I = IMD3008_I
 										  ) %>%
 										  select(
 											id,
@@ -156,54 +168,123 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 											numid_party_f,
 											numid_party_g,
 											numid_party_h,
-											numid_party_i
+											numid_party_i,
+											affpol_party_A,
+											affpol_party_B,
+											affpol_party_C,
+											affpol_party_D,
+											affpol_party_E,
+											affpol_party_F,
+											affpol_party_G,
+											affpol_party_H,
+											affpol_party_I
 										  )
+
 		nrow(CSES_IMD_4_CLEAN)
 		head(CSES_IMD_4_CLEAN)
 
-	# now merge in what I need from the IMD data
+#### now merge in what I need from the IMD data
 	
 		nrow(CSES4_CLEAN)
 		CSES4_CLEAN <- CSES4_CLEAN %>%
 							  left_join(CSES_IMD_4_CLEAN, by = "id") 
 		nrow(CSES4_CLEAN)
 		head(CSES4_CLEAN)
+		
+#### deal with missingness, make sure it has the internal R code
+
+	# before
+	summary(CSES4_CLEAN)
+	table(CSES4_CLEAN$closestpartyuniqueid)
+
+	# set the missingness
+		CSES4_CLEAN <- CSES4_CLEAN %>%
+		  mutate(
+			# closest Party
+			closestpartyuniqueid = ifelse(closestpartyuniqueid > 9000000, NA,closestpartyuniqueid),
+			# Replace values > 90 with NA for affpol_party_* variables
+			across(
+			  starts_with("affpol_party_"),
+			  ~ ifelse(. > 90, NA, .)
+			),
+			# Replace values == 88 with NA for numid_party_* variables
+			across(
+			  starts_with("numid_party_"),
+			  ~ ifelse(. > 9000000, NA, .)
+			)
+		  )
+
+	# after
+	summary(CSES4_CLEAN)
+	
+	# and preregistered kick out criteria
+	
+		# not more than time items missing in the belief system
+		
+		# there need to be at least twenty people that support this party
+
+#### make a country/election level variable (used to be 'country' but we want the simularity measures e.t.c. at the country/election level, not the country level -
+	#> noting that some countries, e.g. candada ran the survey twice as part of wave 4 as there where two elections)
+
+	CSES4_CLEAN$country_elec <- paste(CSES4_CLEAN$,CSES4_CLEAN$country,sep="_")
 
 
 ## OK, so as a first step, lets have a look at the unique identifier of the party I feel closest to (taken from the IMD codebook as IMD3005_3
 	
-	CSES4_CLEAN$closestpartyuniqueid # this is the unique indentifier of the party I am closest to
-	table(CSES4_CLEAN$closestpartyuniqueid)
+	# old closest parties VS NOW
+		
+		# old
+		table(CSES4_CLEAN$party)
+		table(is.na(CSES4_CLEAN$party))
+		
+		# new
+		CSES4_CLEAN$closestpartyuniqueid # this is the unique indentifier of the party I am closest to
+		table(CSES4_CLEAN$closestpartyuniqueid)
+		table(is.na(CSES4_CLEAN$closestpartyuniqueid)) # note that these NA scores are not the same, but this is due to the 44 swiss cases that John also identified that do not get a letter score anyways
+		
 	
-## NOW, lets inspect who party A id for all the repondents, this should be the same within all the countries
+## NOW, lets inspect who party A id for all the repondents, this should be the same within all the countries -- yes, this is the pattern one would expect. 
 		table(CSES4_CLEAN$numid_party_a, CSES4_CLEAN$country)
 		table(CSES4_CLEAN$numid_party_b, CSES4_CLEAN$country)
 			
-	
-	# the like/dislike variables for party A e.t.c. are here "IMD3008_A - IMD3008_I #(do we need to think about the last three being optional?)
+## the like/dislike variables for party A e.t.c. are here "IMD3008_A - IMD3008_I #(do we need to think about the last three being optional?)
 
-
-#################################### somewhere around here is probably where new merging in of parlgov ids from the CSES_IMD data (are already loaded on line 43)
-								   # file needs to happen (as in the next step a filter is applied that needs this info)
-
-	# some suggested pseudocode / steps from Tomas here
+	# lets do some inspections
+		summary(CSES4_CLEAN$affpol_party_A)
+		hist(CSES4_CLEAN$affpol_party_A)
 		
-		# merge in TWO parlgov party ids from CSES_IMD on participant id ('id')
-			
-			# the parlgov id related to 'D3018_3'? (?!?the party one voted for?!? )
-			
-			# the parlgov ids related to the D3011_A - D3011_I variables? so for each variable, what party actually affective polarisation was measured for
-			
-			# make a dummy that checks if the parlgov id one voted for occurs in any of the columns that specify the parlgov ids of all those parties affective 
-				# polarisation was measured for, so that this dummy can be used for the filter below around line 135.
+		summary(CSES4_CLEAN$affpol_party_B)
+		hist(CSES4_CLEAN$affpol_party_B)
+		
+		summary(CSES4_CLEAN$affpol_party_C)
+		hist(CSES4_CLEAN$affpol_party_C)
+		
+		summary(CSES4_CLEAN$affpol_party_D)
+		hist(CSES4_CLEAN$affpol_party_D)
+		
+		summary(CSES4_CLEAN$affpol_party_E)
+		hist(CSES4_CLEAN$affpol_party_E)
+		
+		summary(CSES4_CLEAN$affpol_party_F)
+		hist(CSES4_CLEAN$affpol_party_F)
+		
+		summary(CSES4_CLEAN$affpol_party_G)
+		hist(CSES4_CLEAN$affpol_party_G)
+		
+		summary(CSES4_CLEAN$affpol_party_H)
+		hist(CSES4_CLEAN$affpol_party_H)
+		
+		summary(CSES4_CLEAN$affpol_party_I)
+		hist(CSES4_CLEAN$affpol_party_I)
 
 #################################### ANALYTICAL SAMPLE selection
 
 # As per pre-reg remove pps for whom n>= 2 beleif system items are absent
 
-	##filter if party is not measured in liking (i.e., party must be 1-9, if belief system items do not have more than 2 missing, AND if there are at least 20 party supporters for each group)
+	##filter if party is not measured in liking (i.e., party must be 1-9, if belief system items do not have more than 2 missing, )
 	CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs<2) # should be 2 or more i.e.,  <3 
-	#
+	
+	## and if there are at least 20 party supporters for each group
 	CSES4_SAMPLE <- CSES4_SAMPLE_P1 %>% 
 	  group_by(country, party) %>% 
 	  filter(n() >20) %>% 
