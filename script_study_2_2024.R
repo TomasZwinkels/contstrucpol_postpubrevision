@@ -463,7 +463,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 	## UOA: relation with parties within participants (9 per participant, one for each party affective polarisation was measured for)
 	# Reshape the data from wide to long format, keeping only some core columns we need to for matching later
-		CSES4_LONG <- CSES4_CLEAN %>%
+		CSES4_LONG <- CSES4_SAMPLE %>%
 		  select(id, country_election, closestpartyuniqueid, starts_with("numid_party_")) %>%  # Keep only necessary columns
 		  pivot_longer(
 			cols = starts_with("numid_party_"),  # Select columns to pivot (numid_party_a to numid_party_i)
@@ -561,15 +561,30 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		table(is.na(FINDAT$logic))
 		table(is.na(FINDAT$contentdif))
 		
+		# are there ids in FINDAT that are not in CSES4_SAMPLE?
+			
+			# IDs in FINDAT$id that are not in CSES4_SAMPLE$id
+			ids_in_FINDAT_not_in_CSES4 <- setdiff(FINDAT$id, CSES4_SAMPLE$id)
+			ids_in_FINDAT_not_in_CSES4 # should be empty
+
+			# IDs in CSES4_SAMPLE$id that are not in FINDAT$id
+			ids_in_CSES4_not_in_FINDAT <- setdiff(CSES4_SAMPLE$id, FINDAT$id)
+			ids_in_CSES4_not_in_FINDAT # should be empty		
 		
 #### now  make a variable that tell me if a row is ingroup or outgroup (was called affpoldummy before in Felicity' code)
 
 	FINDAT$affpoldummy <- ifelse(FINDAT$closestpartyuniqueid == FINDAT$numid_value,"ingroup","outgroup")
 	table(FINDAT$affpoldummy)
 	table(is.na(FINDAT$affpoldummy))
-	
+
+############################ Make MLM dataset	
 #### merge this whole new shabang with CSES4_SAMPLE
 
+	## before we merge however, lets drop the 'wide' variables (numid_party_a until numid_party_i AND affpol_party_A-affpol_party_I), the latter does need to be merged in, but we will do that in a moment
+	CSES4_SAMPLE_FOCUSED <- CSES4_SAMPLE %>%
+							select(-starts_with("numid_party"), -starts_with("affpol_party"))
+	as.data.frame(CSES4_SAMPLE_FOCUSED[0:20,])
+							
 	# sqldf version
 	#	mlm.dat <- sqldf("SELECT FINDAT.numid_party, FINDAT.numid_value, FINDAT.logic, FINDAT.contentdif, FINDAT.affpoldummy, CSES4_SAMPLE.*
 	#			   FROM FINDAT
@@ -579,51 +594,56 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 	# dplyr version
 		mlm.dat <- FINDAT %>%
-						  left_join(CSES4_SAMPLE, by = "id") %>%
+						  left_join(CSES4_SAMPLE_FOCUSED, by = "id") %>%
 						  select(numid_party, numid_value, logic, contentdif, affpoldummy, everything())
-		nrow(FINDAT)
-		nrow(mlm.dat) # or
-		nrow(CSES4_SAMPLE)
 	
-		# inspect one case to see what is going wrong
+		nrow(mlm.dat) 
 		
-		# selecting an ID I know exists
-		head(CSES4_SAMPLE$id)
-		"036020130001006565" %in% CSES4_SAMPLE$id 
+### now merge in the affective polarisation bits
 		
-		# now lets inspect both
-		as.data.frame(mlm.dat[which(mlm.dat$id =="036020130001006565"),])
-		as.data.frame(CSES4_SAMPLE[which(CSES4_SAMPLE$id =="036020130001006565"),])
+	# for this, first we need to affective polarisation values also in the long format
+		# Reshape the data from wide to long format, keeping only some core columns we need to for matching later
+		CSES4_LONG_AFFPOL <- CSES4_SAMPLE %>%
+		  select(id, country_election, closestpartyuniqueid, starts_with("affpol_party_")) %>%  # Keep only necessary columns
+		  pivot_longer(
+			cols = starts_with("affpol_party_"),  # Select columns to pivot (numid_party_a to numid_party_i)
+			names_to = "affpol_party",            # New column for party identifiers (a-i)
+			values_to = "affpol_value"            # New column for the values of numid_party
+		  )
+		CSES4_LONG_AFFPOL[0:20,]
+		CSES4_LONG[0:20,]
+		
+		# manual check on the top cases
+		as.data.frame(CSES4_SAMPLE[which(CSES4_SAMPLE$id == "036020130001000794"),])
+		
+	# now merge this into mlm.dat
+		
+		nrow(mlm.dat)
+		
+			mlm.dat <- mlm.dat %>%
+					  left_join(CSES4_LONG_AFFPOL, by = c(
+						"id" = "id",
+						"numid_value" = "affpol_party",
+						"country_election" = "country_election"
+					  )) %>%
+					  select(everything(), affpol_value)
+
+		nrow(mlm.dat)
+
+		as.data.frame(mlm.dat[0:20,])
 		
 		
 		
 		
-
-
-
-
-############################ Make MLM dataset
-
-	mlm.dat <- pivot_longer(CSES4_SAMPLE, polar_1:polar_9,  names_to = "target", values_to = "aff.pol")
-	mlm.dat <- mlm.dat %>% mutate(targetorig = target)
-	mlm.dat <- as.data.frame(mlm.dat)
-	head(mlm.dat)
-	nrow(mlm.dat)
-
-# add content and structure variables in
-	mlm.dat <- merge(mlm.dat, logic_cont, by = c('id','target'), all.x = TRUE)
-	nrow(mlm.dat)
-
 # make final variables
+	nrow(mlm.dat)
 	mlm.dat.fin <- mlm.dat%>% 
-							mutate(affpoldummy = ifelse((party==1 & target == "polar_1")|(party==2 & target == "polar_2")|(party==3 & target == "polar_3")|(party==4 & target == "polar_4")|(party==5 & target == "polar_5")|(party==6 & target == "polar_6")|(party==7 & target == "polar_7")|(party==8 & target == "polar_8")|(party==9 & target == "polar_9"), "ingroup", 
-														ifelse((party==1 & target != "polar_1")|(party==2 & target != "polar_2")|(party==3 & target != "polar_3")|(party==4 & target != "polar_4")|(party==5 & target != "polar_5")|(party==6 & target != "polar_6")|(party==7 & target != "polar_7")|(party==8 & target != "polar_8")|(party==9 & target != "polar_9"), "outgroup", NA)),
-								   outgroupdummy = ifelse(affpoldummy == "ingroup",0,
+							mutate(outgroupdummy = ifelse(affpoldummy == "ingroup",0,
 														  ifelse(affpoldummy == "outgroup",1,NA)),
 								   content     = 1-contentdif,
 								   logic_c     = mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
 								   ingroup     = as.factor(affpoldummy),
-								   partynum    = paste0(country,party),
+								   partynum    = paste0(country,closestpartyuniqueid.x),
 								   countrydummy= as.factor(country),
 								   aff.pol.num = as.numeric(aff.pol)
 							   
