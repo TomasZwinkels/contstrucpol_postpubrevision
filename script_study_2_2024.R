@@ -598,7 +598,12 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 						  select(numid_party, numid_value, logic, contentdif, affpoldummy, everything())
 	
 		nrow(mlm.dat) 
+	
+	# Extract the rightmost letter from numid_party using substr and put it in a new variable and capitalise it using the function 'to upper'
+		mlm.dat$partyletter <- toupper(substr(mlm.dat$numid_party, nchar(mlm.dat$numid_party), nchar(mlm.dat$numid_party)))
 		
+		as.data.frame(mlm.dat)[0:20,]
+	
 ### now merge in the affective polarisation bits
 		
 	# for this, first we need to affective polarisation values also in the long format
@@ -610,46 +615,52 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			names_to = "affpol_party",            # New column for party identifiers (a-i)
 			values_to = "affpol_value"            # New column for the values of numid_party
 		  )
+		nrow(CSES4_LONG_AFFPOL)
+		
+		# Extract the rightmost letter from affpol_party using substr and put it in a new variable
+		CSES4_LONG_AFFPOL$partyletter <- substr(CSES4_LONG_AFFPOL$affpol_party, nchar(CSES4_LONG_AFFPOL$affpol_party), nchar(CSES4_LONG_AFFPOL$affpol_party))
+		
 		CSES4_LONG_AFFPOL[0:20,]
-		CSES4_LONG[0:20,]
 		
 		# manual check on the top cases
 		as.data.frame(CSES4_SAMPLE[which(CSES4_SAMPLE$id == "036020130001000794"),])
 		
-	# now merge this into mlm.dat
+	# now merge this into mlm.dat (would probably also be possible with a simple rbind, as both should be the same length, but this is safer and less vurnerable to errors 
+		# in the data)
 		
 		nrow(mlm.dat)
 		
 			mlm.dat <- mlm.dat %>%
 					  left_join(CSES4_LONG_AFFPOL, by = c(
 						"id" = "id",
-						"numid_value" = "affpol_party",
-						"country_election" = "country_election"
+						"partyletter" = "partyletter",
+						"country_election.x" = "country_election"
 					  )) %>%
 					  select(everything(), affpol_value)
 
 		nrow(mlm.dat)
 
 		as.data.frame(mlm.dat[0:20,])
+
 		
-		
-		
-		
-# make final variables
+### make final variables
 	nrow(mlm.dat)
 	mlm.dat.fin <- mlm.dat%>% 
 							mutate(outgroupdummy = ifelse(affpoldummy == "ingroup",0,
 														  ifelse(affpoldummy == "outgroup",1,NA)),
-								   content     = 1-contentdif,
-								   logic_c     = mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
-								   ingroup     = as.factor(affpoldummy),
-								   partynum    = paste0(country,closestpartyuniqueid.x),
-								   countrydummy= as.factor(country),
-								   aff.pol.num = as.numeric(aff.pol)
+								   content     	= 1-contentdif,
+								   logic_c     	= mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
+								   ingroup     	= as.factor(affpoldummy),
+								   partynum    	= paste0(country,closestpartyuniqueid.x),
+								   countrydummy	= as.factor(country),
+								   aff.pol 		= affpol_value,
+								   aff.pol.num 	= as.numeric(aff.pol),
+								   target = partyletter
 							   
 							)                      
 	nrow(mlm.dat.fin)
 	head(mlm.dat.fin)
+	as.data.frame(mlm.dat.fin[0:20,])
 	
 	mlm.dat.fin <- mlm.dat.fin%>% 
 	  mutate(content_c= mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE),
@@ -670,8 +681,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	table(is.na(mlm.dat.fin$outgroupdummy))
 	
 	summary(mlm.dat.fin$content)
-	table(mlm.dat.fin$outgroupdummy)
-	table(is.na(mlm.dat.fin$outgroupdummy))
+	table(is.na(mlm.dat.fin$content))
 
 
 #cor set
@@ -680,22 +690,21 @@ cordat <- mlm.dat.fin %>%
           dplyr::select(aff.pol, logic_c, content_c, outgroupdummy)
 cor(cordat, use = "pairwise.complete.obs")
 
-
 cor(mlm.dat.fin$logic, mlm.dat.fin$content, use = "pairwise.complete.obs")
 cor.test(mlm.dat.fin$logic, mlm.dat.fin$content, method = "pearson")
 
 # get subsamples
 subsamp.in <- subset(mlm.dat.fin, mlm.dat.fin$affpoldummy == "ingroup")
 subsamp.ot <- subset(mlm.dat.fin, mlm.dat.fin$affpoldummy == "outgroup")
-subsamp.t1 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_1"))
-subsamp.t2 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_2"))
-subsamp.t3 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_3"))
-subsamp.t4 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_4"))
-subsamp.t5 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_5"))
-subsamp.t6 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_6"))
-subsamp.t7 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_7"))
-subsamp.t8 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_8"))
-subsamp.t9 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "polar_9"))
+subsamp.t1 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "A")) # this now contains the party letters, used to say: & mlm.dat.fin$target == "polar_1"))
+subsamp.t2 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "B"))
+subsamp.t3 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "C"))
+subsamp.t4 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "D"))
+subsamp.t5 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "E"))
+subsamp.t6 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "F"))
+subsamp.t7 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "G"))
+subsamp.t8 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "H"))
+subsamp.t9 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "I"))
 
 # correlations for structure/logic
 cor.test(subsamp.in$aff.pol, subsamp.in$logic, method = "pearson")
@@ -730,23 +739,25 @@ mean(c(
 
 
 # histogram logic
-p2 <- mlm.dat %>%
+p2 <- mlm.dat.fin %>%
   ggplot( aes(x=logic, fill=affpoldummy)) +
   geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
   scale_fill_manual(values=c("#69b3a2", "#404080")) +
   labs(fill="")
+p2
 
 # histogram content
-q2 <- mlm.dat %>%
+q2 <- mlm.dat.fin %>%
   ggplot( aes(x=content, fill=affpoldummy)) +
   geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
   scale_fill_manual(values=c("#69b3a2", "#404080")) +
   labs(fill="")
 
+q2
 
 # volin plot
 
-ggplot(mlm.dat, 
+ggplot(mlm.dat.fin, 
        aes(x = logic, 
            y = aff.pol, 
            color = target)) +
