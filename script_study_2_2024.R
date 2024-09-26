@@ -91,7 +91,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
                                 #        partyh  = ifelse(D5201_H==9999,NA,D5201_H),
                                 #        partyi  = ifelse(D5201_I==9999,NA,D5201_I),
                                         lowhouse=D3008_LH_PL,
-                                #        party   = ifelse(as.numeric(D3018_3)>88,NA,as.numeric(D3018_3)), # this missingness recoding on this used to be somewhere else I think, now doing it here
+                                        party   = ifelse(as.numeric(D3018_3)>88,NA,as.numeric(D3018_3)), # this missingness recoding on this used to be somewhere else I think, now doing it here
                                        closest  = D3018_4,
                                        gender   = ifelse(D2002==1,-1,                                       # makes controls as per pre-reg
                                                                ifelse(D2002 ==2,1,NA)),
@@ -303,56 +303,125 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 			CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(!(na_bs > 1))
 		
 		nrow(CSES4_SAMPLE_P1)
+	
+	## drop all the cases where we do not know the closestpartyuniqueid
+
+		table(is.na(CSES4_SAMPLE_P1$closestpartyuniqueid))
+
+		CSES4_SAMPLE_P1A <- CSES4_SAMPLE_P1 %>%
+			filter(!is.na(closestpartyuniqueid))
+
+		nrow(CSES4_SAMPLE_P1A)
+	
+	## and if there are at least 20 party supporters for each group in this 
 		
+		length(table(CSES4_SAMPLE_P1A$country_election))
+		length(table(CSES4_SAMPLE_P1A$closestpartyuniqueid))
+		
+			CSES4_SAMPLE_P2 <- CSES4_SAMPLE_P1A %>% 
+			  group_by(country_election, closestpartyuniqueid) %>% 
+			  filter(n() >20) %>% 
+			  ungroup()
+
+			nrow(CSES4_SAMPLE_P2)
+
+### start of bug hunting!	
+	
+		# how many parties with a number above 9
+			as.numeric(cbind(names(table(CSES4_SAMPLE_P1A$party)),table(CSES4_SAMPLE_P1A$party)))
+			
+	
+	
+		# lets pick a country where we know the filters are off
+		
+			table(CSES4_SAMPLE_P1A$country_election)
+			ROU_2012 <- CSES4_SAMPLE_P1A[which(CSES4_SAMPLE_P1A$country_election == "ROU_2012"),]
+			nrow(ROU_2012)
+			
+			table(ROU_2012$closestpartyuniqueid,ROU_2012$party)
+	
+		
+		
+		table(CSES4_SAMPLE_P2$country_election)
+		
+		table(is.na(CSES4_SAMPLE_P2$closestpartyuniqueid)) 
+		
+		summary(CSES4_SAMPLE_P2)
+		
+		table(CSES4_SAMPLE_P2$country_election) - table(CSES4_SAMPLE_P1$country_election)
+		
+		table(CSES4_SAMPLE_P2$country_election) - table(CSES4_SAMPLE_P1A$country_election)
+		
+		as.data.frame(CSES4_SAMPLE_P2[0:20,])
+		
+		## same thing, but how David does it
+		
+			# maybe it goes wrong at his letter coding?
+			
+			# Now convert the party closeness codes into letter codes
+				party.conversion <- CSES4_SAMPLE_P1A %>% 
+				  select(country_election_imd, contains("numid_party",ignore.case=TRUE)) %>% 
+				  distinct %>%
+				  pivot_longer(-country_election_imd, names_prefix = "numid_party_") %>%
+				  filter(!is.na(value), value < 9999980) %>%
+				  mutate(value = paste(country_election_imd, value, sep = "_"), .keep = "unused") %>%
+				  select(value, name) %>%
+				  deframe
+
+				CSES4_SAMPLE_P1$party_asletter <- recode(paste(CSES4_SAMPLE_P1$country_election, CSES4_SAMPLE_P1$party, sep = "_"), !!!party.conversion) %>% ifelse(. %in% LETTERS, ., NA)
+		
+				table(CSES4_SAMPLE_P1$party_asletter)
+		
+		
+		cut2 <- CSES4_SAMPLE_P1 %>%
+		  group_by(country_election, party) %>%
+		  mutate(n = n()) %>%
+		  group_by(country_election) %>%
+		  mutate(party = ifelse(n <= 20, NA, party)) %>%                
+		  filter(!is.na(party)) %>% 
+		  ungroup
+		  
+		nrow(cut2) # is the same as above, so it is not the script or the party that is being used... it must be before this..
+		as.data.frame(cut2[0:20,])
+
+### end of bug hunting!			
+	
 	## also, for your party, affective polarization needs to be measured somewhere
 	
-		nrow(CSES4_SAMPLE_P1)
+		nrow(CSES4_SAMPLE_P2)
 		
 			# get a variable that tells me if it was measured somewhere
 				resvec <- vector()
-				pb = txtProgressBar(min = 0, max = nrow(CSES4_SAMPLE_P1), initial = 0) 
-				for(i in 1:nrow(CSES4_SAMPLE_P1))
+				pb = txtProgressBar(min = 0, max = nrow(CSES4_SAMPLE_P2), initial = 0) 
+				for(i in 1:nrow(CSES4_SAMPLE_P2))
 				{
 					# get a vector with all party ids available for me
 					allpartyidsavail <- c(
-										  CSES4_CLEAN$numid_party_a[i],
-										  CSES4_CLEAN$numid_party_b[i],
-										  CSES4_CLEAN$numid_party_c[i],
-										  CSES4_CLEAN$numid_party_d[i],
-										  CSES4_CLEAN$numid_party_e[i],
-										  CSES4_CLEAN$numid_party_f[i],
-										  CSES4_CLEAN$numid_party_g[i],
-										  CSES4_CLEAN$numid_party_h[i],
-										  CSES4_CLEAN$numid_party_i[i]
+										  CSES4_SAMPLE_P2$numid_party_a[i],
+										  CSES4_SAMPLE_P2$numid_party_b[i],
+										  CSES4_SAMPLE_P2$numid_party_c[i],
+										  CSES4_SAMPLE_P2$numid_party_d[i],
+										  CSES4_SAMPLE_P2$numid_party_e[i],
+										  CSES4_SAMPLE_P2$numid_party_f[i],
+										  CSES4_SAMPLE_P2$numid_party_g[i],
+										  CSES4_SAMPLE_P2$numid_party_h[i],
+										  CSES4_SAMPLE_P2$numid_party_i[i]
 										)
 					
-					resvec[i] <- CSES4_CLEAN$closestpartyuniqueid[i] %in% allpartyidsavail
+					resvec[i] <- CSES4_SAMPLE_P2$closestpartyuniqueid[i] %in% allpartyidsavail
 					setTxtProgressBar(pb,i)
 				}
 				close(pb)
 				
-				CSES4_SAMPLE_P1$ismypartymeasured <- resvec
+				CSES4_SAMPLE_P2$ismypartymeasured <- resvec
 			
-				table(CSES4_SAMPLE_P1$ismypartymeasured)
+				table(CSES4_SAMPLE_P2$ismypartymeasured)
 				
 			# do the reduction
-				CSES4_SAMPLE_P2 <- CSES4_SAMPLE_P1[which(CSES4_SAMPLE_P1$ismypartymeasured),]
+				CSES4_SAMPLE <- CSES4_SAMPLE_P2[which(CSES4_SAMPLE_P2$ismypartymeasured),]
 		
-		nrow(CSES4_SAMPLE_P2)
-		
-	## and if there are at least 20 party supporters for each group in this 
-	
-		nrow(CSES4_SAMPLE_P2)
-		
-			CSES4_SAMPLE <- CSES4_SAMPLE_P2 %>% 
-			  group_by(country_election, closestpartyuniqueid) %>% 
-			  filter(n() >20) %>% 
-			  ungroup()
-		  
 		nrow(CSES4_SAMPLE)
 		
-		summary(CSES4_SAMPLE)
-
 	# some inspections
                 # get number of cases per country_election 
                    CSES4_SAMPLE %>% 
@@ -689,7 +758,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	length(unique(SAMPLECHECKLONG$id))
 	
 
-################################### descritpives
+################################### descriptives
 
 ## inspection of the key variables
 
