@@ -296,7 +296,11 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	
 		nrow(CSES4_CLEAN)
 		
-			CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(na_bs < 2) # should be 2 or more i.e.,  # used to say: CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs < 2)
+			# what the pre-registration says
+			# CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(!(na_bs > 2)) # should be 2 or more i.e.,  # used to say: CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(party < 10 & na_bs < 2)
+		
+			# what David did
+			CSES4_SAMPLE_P1 <- CSES4_CLEAN %>% filter(!(na_bs > 1))
 		
 		nrow(CSES4_SAMPLE_P1)
 		
@@ -371,6 +375,16 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
     
 	TIXCHECKDAT <- CSES4_SAMPLE[which(!is.na(CSES4_SAMPLE$closestpartyuniqueid)),]
 	nrow(TIXCHECKDAT)
+
+### sample check against David	
+
+	nrow(CSES4_SAMPLE)
+	as.data.frame(CSES4_SAMPLE)[0:20,]
+	
+	table(is.na(CSES4_SAMPLE$closestpartyuniqueid))
+	
+	SAMCHECK <- CSES4_SAMPLE[which(!is.na(CSES4_SAMPLE$closestpartyuniqueid)),]
+	nrow(SAMCHECK) # felicity gets 30.053 cases here.
 	
 ############################################ Make BS similarity
              
@@ -640,9 +654,6 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 		nrow(mlm.dat)
 
-		as.data.frame(mlm.dat[0:20,])
-
-		
 ### make final variables
 	nrow(mlm.dat)
 	mlm.dat.fin <- mlm.dat%>% 
@@ -651,22 +662,32 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 								   content     	= 1-contentdif,
 								   logic_c     	= mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
 								   ingroup     	= as.factor(affpoldummy),
-								   partynum    	= paste0(country,closestpartyuniqueid.x),
-								   countrydummy	= as.factor(country),
+								   partynum    	= paste0(closestpartyuniqueid.x),
+								   countryelectiondummy	= as.factor(country_election.x),
 								   aff.pol 		= affpol_value,
 								   aff.pol.num 	= as.numeric(aff.pol),
 								   target = partyletter
 							   
 							)                      
 	nrow(mlm.dat.fin)
-	head(mlm.dat.fin)
-	as.data.frame(mlm.dat.fin[0:20,])
+	as.data.frame(mlm.dat[0:20,])
 	
 	mlm.dat.fin <- mlm.dat.fin%>% 
 	  mutate(content_c= mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE),
 			 partydummy  = as.factor(partynum),
 			 logic_q     = logic_c^2,
 			 content_q     = (mlm.dat.fin$content-mean(mlm.dat.fin$content,na.rm=TRUE))^2)
+
+## how many unique participants in this final data.
+
+	# John is dropping: anyone with NA on relevant variables:
+	SAMPLECHECKLONG <- mlm.dat.fin[which(!(	is.na(mlm.dat.fin$content_c)|
+										is.na(mlm.dat.fin$logic_c)|
+										is.na(mlm.dat.fin$ingroup)|
+										is.na(mlm.dat.fin$aff.pol))),]
+	nrow(SAMPLECHECKLONG)
+	length(unique(SAMPLECHECKLONG$id))
+	
 
 ################################### descritpives
 
@@ -768,13 +789,13 @@ ggplot(mlm.dat.fin,
 ################################### # are people more similar to thier ingroup than outgroup?
 testc <- lmer(content ~  
                 outgroupdummy+
-                countrydummy+ partydummy+
+                countryelectiondummy+ partydummy+
                 #                edu_c + age_c + inc_c +ethnicdummy+
                 (1 | id), data=mlm.dat.fin)
 
 tests <- lmer(logic ~  
                 outgroupdummy+
-                countrydummy+ partydummy+
+                countryelectiondummy+ partydummy+
                 #                edu_c + age_c + inc_c +ethnicdummy+
                 (1 | id), data=mlm.dat.fin)
 
@@ -794,11 +815,26 @@ head(mlm.dat.fin)
 h1test <- lmer(aff.pol ~  logic_c + content_c+ 
                  outgroupdummy+
                  logic_c*outgroupdummy + content_c*outgroupdummy + 
-                 countrydummy+ partydummy+
+                 countryelectiondummy+ partydummy+
                  #                edu_c + age_c + inc_c +ethnicdummy+
                  (1 | id), data=mlm.dat.fin)
 
 summary(h1test) 
+
+# Set the current timestamp
+timestamp <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
+
+# Export the model
+h1test_tomas <- h1test
+save(h1test_tomas, file = paste0("h1test_tomas_", timestamp, ".RData"))
+
+# Export the model data
+h1test_tomas_model_data <- model.frame(h1test_tomas)
+nrow(h1test_tomas_model_data)
+h1test_tomas_model_data[0:20,]
+write.csv(h1test_tomas_model_data, paste0("h1test_tomas_model_data_", timestamp, ".csv"), row.names = FALSE)
+
+
 				 
 table(mlm.dat.fin$country) # OK, so here we have all the countries again...  how?!
 
@@ -806,14 +842,14 @@ table(mlm.dat.fin$country) # OK, so here we have all the countries again...  how
 h1test.st1 <- lmer(aff.pol ~  logic_c + 
                      outgroupdummy+
                      logic_c*outgroupdummy + 
-                     countrydummy+ partydummy+
+                     countryelectiondummy+ partydummy+
                      (1 | id), data=mlm.dat.fin
 )
 
 h1test.st2 <- lmer(aff.pol ~  + content_c+
                      outgroupdummy+
                      content_c*outgroupdummy +
-                     countrydummy+ partydummy+
+                     countryelectiondummy+ partydummy+
                      (1 | id), data=mlm.dat.fin
 )
 
