@@ -140,7 +140,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 											id = IMD1005,
 											closestpartyuniqueid = IMD3005_3,
 											numid_party_a = IMD5000_A,
-											numid_party_a = IMD5000_B,
+											numid_party_b = IMD5000_B,
 											numid_party_c = IMD5000_C,
 											numid_party_d = IMD5000_D,
 											numid_party_e = IMD5000_E,
@@ -196,50 +196,49 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 
 #### code CSU in Germany as CDU
 
-	CSES_IMD_4_CLEAN$closestpartyuniqueid[which(CSES_IMD_4_CLEAN$closestpartyuniqueid == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$closestpartyuniqueid[which(CSES_IMD_4_CLEAN$closestpartyuniqueid == 2760003)] <- 2760002
+	CSES4_CLEAN$closestpartyuniqueid[which(CSES4_CLEAN$closestpartyuniqueid == 2760001)] <- 2760002
+	CSES4_CLEAN$closestpartyuniqueid[which(CSES4_CLEAN$closestpartyuniqueid == 2760003)] <- 2760002
 	
-	CSES_IMD_4_CLEAN$numid_party_a[which(CSES_IMD_4_CLEAN$numid_party_a == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_a[which(CSES_IMD_4_CLEAN$numid_party_a == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_a[which(CSES4_CLEAN$numid_party_a == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_a[which(CSES4_CLEAN$numid_party_a == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_b[which(CSES_IMD_4_CLEAN$numid_party_b == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_b[which(CSES_IMD_4_CLEAN$numid_party_b == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_b[which(CSES4_CLEAN$numid_party_b == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_b[which(CSES4_CLEAN$numid_party_b == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_c[which(CSES_IMD_4_CLEAN$numid_party_c == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_c[which(CSES_IMD_4_CLEAN$numid_party_c == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_c[which(CSES4_CLEAN$numid_party_c == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_c[which(CSES4_CLEAN$numid_party_c == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_d[which(CSES_IMD_4_CLEAN$numid_party_d == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_d[which(CSES_IMD_4_CLEAN$numid_party_d == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_d[which(CSES4_CLEAN$numid_party_d == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_d[which(CSES4_CLEAN$numid_party_d == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_e[which(CSES_IMD_4_CLEAN$numid_party_e == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_e[which(CSES_IMD_4_CLEAN$numid_party_e == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_e[which(CSES4_CLEAN$numid_party_e == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_e[which(CSES4_CLEAN$numid_party_e == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_f[which(CSES_IMD_4_CLEAN$numid_party_f == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_f[which(CSES_IMD_4_CLEAN$numid_party_f == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_f[which(CSES4_CLEAN$numid_party_f == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_f[which(CSES4_CLEAN$numid_party_f == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_g[which(CSES_IMD_4_CLEAN$numid_party_g == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_g[which(CSES_IMD_4_CLEAN$numid_party_g == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_g[which(CSES4_CLEAN$numid_party_g == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_g[which(CSES4_CLEAN$numid_party_g == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_h[which(CSES_IMD_4_CLEAN$numid_party_h == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_h[which(CSES_IMD_4_CLEAN$numid_party_h == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_h[which(CSES4_CLEAN$numid_party_h == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_h[which(CSES4_CLEAN$numid_party_h == 2760003)] <- 2760002
 
-	CSES_IMD_4_CLEAN$numid_party_i[which(CSES_IMD_4_CLEAN$numid_party_i == 2760001)] <- 2760002
-	CSES_IMD_4_CLEAN$numid_party_i[which(CSES_IMD_4_CLEAN$numid_party_i == 2760003)] <- 2760002
+	CSES4_CLEAN$numid_party_i[which(CSES4_CLEAN$numid_party_i == 2760001)] <- 2760002
+	CSES4_CLEAN$numid_party_i[which(CSES4_CLEAN$numid_party_i == 2760003)] <- 2760002
 
 	# was this successfull? (should return all zero's)
 		for (party in letters[1:9]) {
 		  party_column <- paste0("numid_party_", party)
 		  
 		  # Check for 2760001
-		  rows_with_2760001 <- nrow(CSES_IMD_4_CLEAN[which(CSES_IMD_4_CLEAN[[party_column]] == 2760001),])
+		  rows_with_2760001 <- nrow(CSES4_CLEAN[which(CSES4_CLEAN[[party_column]] == 2760001),])
 		  cat(paste0("Rows with 2760001 in ", party_column, ": ", rows_with_2760001, "\n"))
 		  
 		  # Check for 2760003
-		  rows_with_2760003 <- nrow(CSES_IMD_4_CLEAN[which(CSES_IMD_4_CLEAN[[party_column]] == 2760003),])
+		  rows_with_2760003 <- nrow(CSES4_CLEAN[which(CSES4_CLEAN[[party_column]] == 2760003),])
 		  cat(paste0("Rows with 2760003 in ", party_column, ": ", rows_with_2760003, "\n"))
 		}
 
-		
 		
 #### deal with missingness, make sure it has the internal R code
 
@@ -437,6 +436,9 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	
 		nrow(CSES4_SAMPLE_P2)
 		
+		table(CSES4_SAMPLE_P2$closestpartyuniqueid)
+		table(CSES4_SAMPLE_P2$numid_party_a)
+		
 			# get a variable that tells me if it was measured somewhere
 				resvec <- vector()
 				pb = txtProgressBar(min = 0, max = nrow(CSES4_SAMPLE_P2), initial = 0) 
@@ -500,7 +502,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	table(is.na(CSES4_SAMPLE$closestpartyuniqueid))
 	
 	SAMCHECK <- CSES4_SAMPLE[which(!is.na(CSES4_SAMPLE$closestpartyuniqueid)),]
-	nrow(SAMCHECK) # felicity gets 30.053 cases here.
+	nrow(SAMCHECK) # felicity gets 30.053 cases here. -- Felicity now has 30.191 cases here.
 	
 ############################################ Make BS similarity
              
