@@ -140,7 +140,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 											id = IMD1005,
 											closestpartyuniqueid = IMD3005_3,
 											numid_party_a = IMD5000_A,
-											numid_party_b = IMD5000_B,
+											numid_party_a = IMD5000_B,
 											numid_party_c = IMD5000_C,
 											numid_party_d = IMD5000_D,
 											numid_party_e = IMD5000_E,
@@ -193,6 +193,53 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 							  left_join(CSES_IMD_4_CLEAN, by = "id") 
 		nrow(CSES4_CLEAN)
 		head(CSES4_CLEAN)
+
+#### code CSU in Germany as CDU
+
+	CSES_IMD_4_CLEAN$closestpartyuniqueid[which(CSES_IMD_4_CLEAN$closestpartyuniqueid == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$closestpartyuniqueid[which(CSES_IMD_4_CLEAN$closestpartyuniqueid == 2760003)] <- 2760002
+	
+	CSES_IMD_4_CLEAN$numid_party_a[which(CSES_IMD_4_CLEAN$numid_party_a == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_a[which(CSES_IMD_4_CLEAN$numid_party_a == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_b[which(CSES_IMD_4_CLEAN$numid_party_b == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_b[which(CSES_IMD_4_CLEAN$numid_party_b == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_c[which(CSES_IMD_4_CLEAN$numid_party_c == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_c[which(CSES_IMD_4_CLEAN$numid_party_c == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_d[which(CSES_IMD_4_CLEAN$numid_party_d == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_d[which(CSES_IMD_4_CLEAN$numid_party_d == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_e[which(CSES_IMD_4_CLEAN$numid_party_e == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_e[which(CSES_IMD_4_CLEAN$numid_party_e == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_f[which(CSES_IMD_4_CLEAN$numid_party_f == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_f[which(CSES_IMD_4_CLEAN$numid_party_f == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_g[which(CSES_IMD_4_CLEAN$numid_party_g == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_g[which(CSES_IMD_4_CLEAN$numid_party_g == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_h[which(CSES_IMD_4_CLEAN$numid_party_h == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_h[which(CSES_IMD_4_CLEAN$numid_party_h == 2760003)] <- 2760002
+
+	CSES_IMD_4_CLEAN$numid_party_i[which(CSES_IMD_4_CLEAN$numid_party_i == 2760001)] <- 2760002
+	CSES_IMD_4_CLEAN$numid_party_i[which(CSES_IMD_4_CLEAN$numid_party_i == 2760003)] <- 2760002
+
+	# was this successfull? (should return all zero's)
+		for (party in letters[1:9]) {
+		  party_column <- paste0("numid_party_", party)
+		  
+		  # Check for 2760001
+		  rows_with_2760001 <- nrow(CSES_IMD_4_CLEAN[which(CSES_IMD_4_CLEAN[[party_column]] == 2760001),])
+		  cat(paste0("Rows with 2760001 in ", party_column, ": ", rows_with_2760001, "\n"))
+		  
+		  # Check for 2760003
+		  rows_with_2760003 <- nrow(CSES_IMD_4_CLEAN[which(CSES_IMD_4_CLEAN[[party_column]] == 2760003),])
+		  cat(paste0("Rows with 2760003 in ", party_column, ": ", rows_with_2760003, "\n"))
+		}
+
+		
 		
 #### deal with missingness, make sure it has the internal R code
 
@@ -731,7 +778,7 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 								   content     	= 1-contentdif,
 								   logic_c     	= mlm.dat$logic-mean(mlm.dat$logic,na.rm=TRUE),
 								   ingroup     	= as.factor(affpoldummy),
-								   partynum    	= paste0(closestpartyuniqueid.x),
+								   partynum    	= paste0(closestpartyuniqueid.x), #partynum    	= paste0(closestpartyuniqueid.x),
 								   countryelectiondummy	= as.factor(country_election.x),
 								   aff.pol 		= affpol_value,
 								   aff.pol.num 	= as.numeric(aff.pol),
@@ -880,6 +927,15 @@ emtyh1 <- lmer(aff.pol ~ 1 + (1 | id), data=mlm.dat.fin)
 compute_icc(emtyh1)
 
 head(mlm.dat.fin)
+
+h1test <- lmer(aff.pol ~  logic_c + content_c+ 
+                 outgroupdummy+
+                 logic_c*outgroupdummy + content_c*outgroupdummy + 
+                 countryelectiondummy+ partydummy+
+                 #                edu_c + age_c + inc_c +ethnicdummy+
+                 (1 | id), data=mlm.dat.fin)
+
+summary(h1test) 
 
 h1test <- lmer(aff.pol ~  logic_c + content_c+ 
                  outgroupdummy+
