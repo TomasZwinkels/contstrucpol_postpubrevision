@@ -194,37 +194,37 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 		nrow(CSES4_CLEAN)
 		head(CSES4_CLEAN)
 
-#### code CSU in Germany as CDU
-
-	CSES4_CLEAN$closestpartyuniqueid[which(CSES4_CLEAN$closestpartyuniqueid == 2760001)] <- 2760002
-	CSES4_CLEAN$closestpartyuniqueid[which(CSES4_CLEAN$closestpartyuniqueid == 2760003)] <- 2760002
-	
-	CSES4_CLEAN$numid_party_a[which(CSES4_CLEAN$numid_party_a == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_a[which(CSES4_CLEAN$numid_party_a == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_b[which(CSES4_CLEAN$numid_party_b == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_b[which(CSES4_CLEAN$numid_party_b == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_c[which(CSES4_CLEAN$numid_party_c == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_c[which(CSES4_CLEAN$numid_party_c == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_d[which(CSES4_CLEAN$numid_party_d == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_d[which(CSES4_CLEAN$numid_party_d == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_e[which(CSES4_CLEAN$numid_party_e == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_e[which(CSES4_CLEAN$numid_party_e == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_f[which(CSES4_CLEAN$numid_party_f == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_f[which(CSES4_CLEAN$numid_party_f == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_g[which(CSES4_CLEAN$numid_party_g == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_g[which(CSES4_CLEAN$numid_party_g == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_h[which(CSES4_CLEAN$numid_party_h == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_h[which(CSES4_CLEAN$numid_party_h == 2760003)] <- 2760002
-
-	CSES4_CLEAN$numid_party_i[which(CSES4_CLEAN$numid_party_i == 2760001)] <- 2760002
-	CSES4_CLEAN$numid_party_i[which(CSES4_CLEAN$numid_party_i == 2760003)] <- 2760002
+#### code CSU in Germany as CDU # decided not to, from an identity point of view, these are really not the same parties.
+#
+#	CSES4_CLEAN$closestpartyuniqueid[which(CSES4_CLEAN$closestpartyuniqueid == 2760001)] <- 2760002
+#	CSES4_CLEAN$closestpartyuniqueid[which(CSES4_CLEAN$closestpartyuniqueid == 2760003)] <- 2760002
+#	
+#	CSES4_CLEAN$numid_party_a[which(CSES4_CLEAN$numid_party_a == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_a[which(CSES4_CLEAN$numid_party_a == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_b[which(CSES4_CLEAN$numid_party_b == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_b[which(CSES4_CLEAN$numid_party_b == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_c[which(CSES4_CLEAN$numid_party_c == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_c[which(CSES4_CLEAN$numid_party_c == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_d[which(CSES4_CLEAN$numid_party_d == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_d[which(CSES4_CLEAN$numid_party_d == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_e[which(CSES4_CLEAN$numid_party_e == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_e[which(CSES4_CLEAN$numid_party_e == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_f[which(CSES4_CLEAN$numid_party_f == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_f[which(CSES4_CLEAN$numid_party_f == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_g[which(CSES4_CLEAN$numid_party_g == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_g[which(CSES4_CLEAN$numid_party_g == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_h[which(CSES4_CLEAN$numid_party_h == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_h[which(CSES4_CLEAN$numid_party_h == 2760003)] <- 2760002
+#
+#	CSES4_CLEAN$numid_party_i[which(CSES4_CLEAN$numid_party_i == 2760001)] <- 2760002
+#	CSES4_CLEAN$numid_party_i[which(CSES4_CLEAN$numid_party_i == 2760003)] <- 2760002
 
 	# was this successfull? (should return all zero's)
 		for (party in letters[1:9]) {
@@ -708,6 +708,23 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	FINDAT$affpoldummy <- ifelse(FINDAT$closestpartyuniqueid == FINDAT$numid_value,"ingroup","outgroup")
 	table(FINDAT$affpoldummy)
 	table(is.na(FINDAT$affpoldummy))
+	
+	# every person should only have one ingroup
+		table(FINDAT$affpoldummy) # which is not the case...
+		nrow(FINDAT)
+	
+	# are the ids unique?
+		filtered_data <- FINDAT %>%
+		  filter(affpoldummy == "ingroup") %>%
+		  group_by(id) %>%
+		  filter(n() > 1) %>%
+		  ungroup()
+
+		# View the filtered results
+		filtered_data
+		
+		table(filtered_data$country_election)
+	
 
 ############################ Make MLM dataset	
 #### merge this whole new shabang with CSES4_SAMPLE
@@ -821,6 +838,9 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	
 	summary(mlm.dat.fin$content)
 	table(is.na(mlm.dat.fin$content))
+	
+	summary(mlm.dat.fin$aff.pol)
+	hist(mlm.dat.fin$aff.pol)
 
 
 #cor set
@@ -833,6 +853,8 @@ cor(mlm.dat.fin$logic, mlm.dat.fin$content, use = "pairwise.complete.obs")
 cor.test(mlm.dat.fin$logic, mlm.dat.fin$content, method = "pearson")
 
 # get subsamples
+table(mlm.dat.fin$affpoldummy)
+
 subsamp.in <- subset(mlm.dat.fin, mlm.dat.fin$affpoldummy == "ingroup")
 subsamp.ot <- subset(mlm.dat.fin, mlm.dat.fin$affpoldummy == "outgroup")
 subsamp.t1 <- subset(mlm.dat.fin, (mlm.dat.fin$affpoldummy == "outgroup" & mlm.dat.fin$target == "A")) # this now contains the party letters, used to say: & mlm.dat.fin$target == "polar_1"))
@@ -862,8 +884,10 @@ mean(c(
 
 #correlations for content
 cor.test(subsamp.in$aff.pol, subsamp.in$content, method = "pearson")
-cor.test(subsamp.ot$aff.pol, subsamp.ot$content, method = "pearson")
+nrow(subsamp.in)
 
+cor.test(subsamp.ot$aff.pol, subsamp.ot$content, method = "pearson")
+nrow(subsamp.ot)
 
 mean(c(
   cor.test(subsamp.t1$aff.pol, subsamp.t1$content, method = "pearson")$estimate[[1]],
