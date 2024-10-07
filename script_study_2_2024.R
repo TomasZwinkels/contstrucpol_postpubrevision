@@ -751,7 +751,21 @@ CSES4_CLEAN <- CSES4_SELECT  %>%
 	# Extract the rightmost letter from numid_party using substr and put it in a new variable and capitalise it using the function 'to upper'
 		mlm.dat$partyletter <- toupper(substr(mlm.dat$numid_party, nchar(mlm.dat$numid_party), nchar(mlm.dat$numid_party)))
 		
-		as.data.frame(mlm.dat)[0:20,]
+	
+	# For reporting purposes in the memo, how many cases here where actually affected?
+		
+		# number of cases affected
+		
+			# per letter (not sure this makes sense)
+			table(mlm.dat$partyletter,mlm.dat$party)
+		
+			# in one number / percentage
+			sum(mlm.dat$partyletter != mlm.dat$party, na.rm = TRUE) / nrow(mlm.dat)
+		
+		# and how much of the ingroup/outgroup labels does this actually affected
+			
+			mlm.dat$OLDincorrectinoutlabel <- ifelse(mlm.dat$party == mlm.dat$numid_value,"ingroup","outgroup")
+		
 	
 ### now merge in the affective polarisation bits
 		
@@ -953,15 +967,6 @@ emtyh1 <- lmer(aff.pol ~ 1 + (1 | id), data=mlm.dat.fin)
 compute_icc(emtyh1)
 
 head(mlm.dat.fin)
-
-h1test <- lmer(aff.pol ~  logic_c + content_c+ 
-                 outgroupdummy+
-                 logic_c*outgroupdummy + content_c*outgroupdummy + 
-                 countryelectiondummy+ partydummy+
-                 #                edu_c + age_c + inc_c +ethnicdummy+
-                 (1 | id), data=mlm.dat.fin)
-
-summary(h1test) 
 
 h1test <- lmer(aff.pol ~  logic_c + content_c+ 
                  outgroupdummy+
