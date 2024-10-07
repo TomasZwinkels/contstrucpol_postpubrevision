@@ -1,5 +1,7 @@
 ################################### packages
 
+# install.packages("psych")
+
 library(haven)
 library(rio)
 library(tidyverse)
@@ -9,6 +11,7 @@ library(Rfast)
 library(lme4)
 library(lmerTest)
 library(cowplot)
+library(pysch)
 
 ###################################import data
 
@@ -17,11 +20,11 @@ data <- read_dta('Data/Main survey/UNDPOLAR data_full_V9.dta')
 data <- as.data.frame(data)
 
 #similarity data
-newdf <- read.csv("Data/Main survey/allcountriesparties selected.csv")
-logic_cont <- read.csv("Data/Main survey/logic_cont.csv")
+#newdf <- read.csv("Data/Main survey/allcountriesparties selected.csv")
+#logic_cont <- read.csv("Data/Main survey/logic_cont.csv")
 
 #mlm data ready to go
-mlm.dat <- readRDS("Data/Main survey/mlm.dat.s1new.Rda")
+#mlm.dat <- readRDS("Data/Main survey/mlm.dat.s1new.Rda")
 
 ################################### Data overview
 #str(data, list.len=ncol(data))
@@ -32,30 +35,35 @@ data %>%
   group_by(Country) %>%
   summarise(unique = table(duplicated(id)))
 
-
 ################################### clean data
 
-# erecoding all belief system items so they range from 0 to 1
+# recoding all belief system items so they range from 0 to 1
 
 dat_clean <- data       %>% mutate(country             = Country,
-                                   econ_attitudes_1r   = egalitarianism_right/10,            #recodes data to be between 0 and 1: zi = (xi – min(x)) / (max(x) – min(x)) i.e., x-1/(10-1)
-                                   econ_attitudes_2r   = econ_nationalization_right/10,            #recodes data to be between 0 and 1: zi = (xi – min(x)) / (max(x) – min(x))
-                                   econ_attitudes_3r   = gov_resp_right/10,            #recodes data to be between 0 and 1: zi = (xi – min(x)) / (max(x) – min(x))
-                                   cult_attitudes_1r   = (immigration_right-1)/4,             #recodes data to be between 0 and 1
+                                   econ_attitudes_1r   = egalitarianism_right/10,            		#recodes data to be between 0 and 1: zi = (xi – min(x)) / (max(x) – min(x)) i.e., x-1/(10-1)
+                                   econ_attitudes_2r   = econ_nationalization_right/10,            	#recodes data to be between 0 and 1: zi = (xi – min(x)) / (max(x) – min(x))
+                                   econ_attitudes_3r   = gov_resp_right/10,            				#recodes data to be between 0 and 1: zi = (xi – min(x)) / (max(x) – min(x))
+                                   cult_attitudes_1r   = (immigration_right-1)/4,             		#recodes data to be between 0 and 1
                                    cult_attitudes_2r   = (lgbt_rights_right-1)/4,
-                                   cult_attitudes_3r   = (gender_equality_right-1)/4,             #recodes data to be between 0 and 1
-                                   newpol_attitudes_1r = euroscepticism_right/10,          #recodes data to be between 0 and 1
-                                   newpol_attitudes_2r   = (climate_change_right-1)/4,           #recodes data to be between 0 and 1
-                                   newpol_attitudes_3r   = (polcorrectness_right -1)/4,         #recodes data to be between 0 and 1
+                                   cult_attitudes_3r   = (gender_equality_right-1)/4,             	#recodes data to be between 0 and 1
+                                   newpol_attitudes_1r = euroscepticism_right/10,          			#recodes data to be between 0 and 1
+                                   newpol_attitudes_2r   = (climate_change_right-1)/4,           	#recodes data to be between 0 and 1
+                                   newpol_attitudes_3r   = (polcorrectness_right -1)/4,         	#recodes data to be between 0 and 1
                                    ideology              = lrposition/10,
-                                   group = ifelse(party_pref>1, party_pref, NA),
-                                   genderdummy = ifelse(gender==1,-1,                                       # makes controls as per pre-reg
-                                                        ifelse(gender ==2,1,NA)),                           # makes controls as per pre-reg
-                                   ethnicdummy= ifelse(ethnicity_rec==0,-1,ethnicity_rec),                                  # makes controls as per pre-reg
-                                   edu_c = highest_diploma - median(highest_diploma, na.rm=TRUE),           # makes controls as per pre-reg
-                                   age_c = age    - mean(age, na.rm = TRUE),                                # makes controls as per pre-reg
+                                   group = ifelse(party_pref>1, party_pref, NA),					# Tomas: Q: what is 'party_pref' here?, A: Political party preference, 1 is I do not feel close, all others are valid values.
+                                   genderdummy = ifelse(gender==1,-1,                              	# makes controls as per pre-reg
+                                                        ifelse(gender ==2,1,NA)),                  	# makes controls as per pre-reg
+                                   ethnicdummy= ifelse(ethnicity_rec==0,-1,ethnicity_rec),        	# makes controls as per pre-reg
+                                   edu_c = highest_diploma - median(highest_diploma, na.rm=TRUE),  	# makes controls as per pre-reg
+                                   age_c = age    - mean(age, na.rm = TRUE),                   		# makes controls as per pre-reg
                                    inc_c = hhincome - mean(hhincome, na.rm = TRUE),
-                                   partyid_c = party_id - mean(party_id, na.rm = TRUE))                         # makes controls as per pre-reg
+                                   partyid_c = party_id - mean(party_id, na.rm = TRUE))        		# makes controls as per pre-reg
+
+
+# some inspections
+
+	summary(dat_clean$econ_attitudes_1r)
+	hist(dat_clean$econ_attitudes_1r)
 
 
 ################################### select sample
@@ -78,12 +86,12 @@ table(rowSums(is.na(dat_clean[,c("ideology", "econ_attitudes_1r", "econ_attitude
 #shows there is no missingess on the attiude variables so noo need to select
 
 
-# note select people with 1 of the 4 possible party preferences that were also meausred as the targets of the aff_polarization items, polis parties not included as poland measurements are different 
+# note select people with 1 of the 4 possible party preferences that were also meausred as the targets of the aff_polarization items, polish parties not included as poland measurements are different 
 dat_select <- dat_clean    %>% 
                           dplyr::filter(party_pref ==100|party_pref ==18|party_pref ==52|party_pref ==38|party_pref ==14|party_pref ==57|party_pref ==7|party_pref ==70|party_pref ==82|
-                                          party_pref ==99|party_pref ==19|party_pref ==50|party_pref ==36|party_pref ==13|party_pref ==58|party_pref ==5|party_pref ==65|party_pref ==83|
-                                          party_pref ==108|party_pref ==23|party_pref ==54|party_pref ==46|party_pref ==15|party_pref ==56|party_pref ==6|party_pref ==68|party_pref ==85|
-                                                           party_pref ==25|party_pref ==51|party_pref ==35|                party_pref ==62|party_pref ==8|party_pref ==66|party_pref ==84)     %>%             
+                                        party_pref ==99 |party_pref ==19|party_pref ==50|party_pref ==36|party_pref ==13|party_pref ==58|party_pref ==5|party_pref ==65|party_pref ==83|
+                                        party_pref ==108|party_pref ==23|party_pref ==54|party_pref ==46|party_pref ==15|party_pref ==56|party_pref ==6|party_pref ==68|party_pref ==85|
+                                                         party_pref ==25|party_pref ==51|party_pref ==35|                party_pref ==62|party_pref ==8|party_pref ==66|party_pref ==84)     %>%             
                                   dplyr::select(id, country,  
                                   econ_attitudes_1r, econ_attitudes_2r, econ_attitudes_3r,
                                   cult_attitudes_1r, cult_attitudes_2r, cult_attitudes_3r, 
@@ -93,7 +101,75 @@ dat_select <- dat_clean    %>%
                                   party_pref, group, party_id, 
                                   gender, age, hhincome, highest_diploma, genderdummy, age_c, edu_c, inc_c, ethnicdummy)  
 
+# Tomas, OK, so I think this should be equivalent to something like.. Is it possible to get this from the data? - seems not, seems like is from codebook, but the result can be checked
 
+	# in Belgium for example, we should have 8 (it turns out 7) parties.
+		# Belgium (French): Le Parti Socialiste supporters = 14
+		# Belgium (Dutch): Vooruit supporters = 7
+		
+		# Belgium (French): Le Mouvement Réformateur supporters = 13
+		# Belgium (Dutch): Open Vlaamse Liberalen en Democraten = 5
+		
+		# Belgium (French): Le parti du Travail de Belgique supporters = 15
+		# Belgium (Dutch): Partij van de Arbeid van België supporters = 6
+
+		# Belgium (French): Chez Nous supporters = not measured?
+		# Belgium (Dutch): Vlaams Belang supporters = 8
+		
+		# are these indeed the ones?
+		table(dat_select[which(dat_select$country == 1),]$group) # 7 parties included, all correct
+	
+	# in Denmark
+		# Denmark: Socialdemokratiet supporters = 18
+		# Denmark: Venstre supporters - 19
+		# Denmark: Enhedslisten supporters - 23
+		# Denmark: Nye Borgerlige supporters - 25
+		table(dat_select[which(dat_select$country == 2),]$group) # 4 parties included, all correct
+		
+	# in France
+		# France: Le Parti Socialiste supporters - 38
+		# France: Les Républicains supporters - 36
+		# France: La France Insoumise supporters - 46
+		# France: Le Rassemblement National - 35
+		table(dat_select[which(dat_select$country == 3),]$group) # 4 parties included, all correct
+
+	# in Greece
+		# Greece: το ΚΙΝ.ΑΛ supporters - 52
+		# Greece: τη Νέα Δημοκρατία supporters - 50
+		# Greece: την Ελληνική Λύση supporters - 54
+		# Greece: τον ΣΥ.ΡΙΖ.Α. supporters - 51
+		table(dat_select[which(dat_select$country == 4),]$group) # 4 parties included, all correct
+		
+	# in Hungary
+		# Fidesz supporters - 57
+		# Jobbik supporters - 58
+		# Demokratikus Koalíció supporters - 56
+		# Párbeszéd Magyarországért supporters - 62
+		table(dat_select[which(dat_select$country == 5),]$group) # 4 parties included, all correct
+	
+	# in the Netherlands
+		# Partij van de Arbeid supporters = 70 # is included
+		# Volkspartij voor Vrijheid en Democratie = 65 # is included
+		# Socialistische Partij supporters = 69 # NOT included?! -- hmm, this really is what it says in the codebook #Tomas 
+		# Partij voor de Vrijheid supporters = 67 # NOT included?! -- hmm, this really is what it says in the codebook #Tomas
+		table(dat_select[which(dat_select$country == 6),]$group) # 4 parties included, but two of them seem incorrect? 68 (CDA) and 66 (D66)
+	
+	# in Spain
+		# Spain: Partido Socialista Obrero Español - not listed?! - yes, they are but under NL - 82
+		# Spain: Partido Popular supporters - not listed?!  - yes, they are but under NL - 83
+		# Spain: Unidas Podemos supporters - 85
+		# Spain: VOX supporters - 84
+		table(dat_select[which(dat_select$country == 7),]$group) # looks good
+		
+	# in the UK
+		# Labour Party supporters - 100
+		# Conservative party supporters - 99
+		# SNP (Scottish National Party) supporters - 108
+		# UKIP (UK Independence Party) - 102 # UKIP not on purposes? - probably not enough party supporters?
+		table(dat_select[which(dat_select$country == 8),]$group) # UKIP is missing here?! Why?
+		
+		
+## Tomas: are their any pre-registered exclusions like in study 2 that need to be taken into account
 
 
 ################################ sample descriptives
@@ -103,53 +179,70 @@ sd(dat_select$age, na.rm=TRUE)
 #ethnicity
 table(dat_select$ethnicity_rec)
 
-#main variables summary library(pysch)
+#main variables summary library(pysch) # does not run, package issue, will check later.
 describe(dat_select[,c("ideology", "econ_attitudes_1r", "econ_attitudes_2r", "econ_attitudes_3r", "cult_attitudes_1r", "cult_attitudes_2r", "cult_attitudes_3r", "newpol_attitudes_1r", "newpol_attitudes_2r", "newpol_attitudes_3r",
                       "aff_polarization_1", "aff_polarization_2", "aff_polarization_3", "aff_polarization_4")])
 
 ################################# Beleif system similarity
 
 ################################## loop
-#looplist1 <- list()
-#
-## for(i in length(table(dat_select$country)))
-#for (i in 1:length(table(dat_select$country))) {
-#  print(i)
-#  dat_selectloop <- dat_select %>% dplyr::filter(country == i)
-#  
-#  transposed_supp <- dat_selectloop %>% 
-#    dplyr::select(ideology, econ_attitudes_1r, econ_attitudes_2r, econ_attitudes_3r, cult_attitudes_1r, cult_attitudes_2r, cult_attitudes_3r, newpol_attitudes_1r, newpol_attitudes_2r, newpol_attitudes_3r) %>% # put the column of the attitude/issue items here
-#    t(.) %>% # transposes the whole thing and puts it on its side
-#    `colnames<-`(dat_selectloop$id) %>% # makes the column names the participant ID (so use whatever participant ID is in your data)
-#    as.data.frame()
-#  
-#  attitude_compare <- correlate(transposed_supp) %>% # calculates cors
-#    #  shave() %>% # removes half the diag (to avoid repeats)
-#    stretch(na.rm = FALSE) %>% # makes it a long data from with two columsn, one for X and one for Y
-#    drop_na(r) %>% # remove missing values
-#    dplyr::rename(agreement = r) %>% # calls the raw correlation "agreement"
-#    dplyr::mutate(logic = abs(agreement)) %>% # BS structure/logic similarity by taking absolute value
-#    dplyr::select(x, y, agreement, logic) # selects key columns. X and Y will have the participant IDs
-#  
-#  
-#  allsimdata <- as.data.frame(attitude_compare)
-#  allsimdata$content.sim <- colMeans(abs(transposed_supp[ , allsimdata[,1] ] - transposed_supp[ , allsimdata[,2] ] ),  na.rm = TRUE)
-#  allsimdata <- cbind(country= get_labels(dat_select$country)[i], allsimdata)
-#  
-#  
-#  looplist1[[i]] <- allsimdata
-#  names(looplist1)[i] <- get_labels(dat_select$country)[i]
-#
-#  }
-#
-#newdf <- bind_rows(looplist1, .id = NULL)
+looplist1 <- list()
+
+for (i in 1:length(table(dat_select$country))) {
+  print(i)
+  dat_selectloop <- dat_select %>% dplyr::filter(country == i)
+  
+  transposed_supp <- dat_selectloop %>% 
+    dplyr::select(ideology, econ_attitudes_1r, econ_attitudes_2r, econ_attitudes_3r, cult_attitudes_1r, cult_attitudes_2r, cult_attitudes_3r, newpol_attitudes_1r, newpol_attitudes_2r, newpol_attitudes_3r) %>% # put the column of the attitude/issue items here
+    t(.) %>% # transposes the whole thing and puts it on its side
+    `colnames<-`(dat_selectloop$id) %>% # makes the column names the participant ID (so use whatever participant ID is in your data)
+    as.data.frame()
+  
+  attitude_compare <- correlate(transposed_supp) %>% # calculates cors
+    #  shave() %>% # removes half the diag (to avoid repeats)
+    stretch(na.rm = FALSE) %>% # makes it a long data from with two columsn, one for X and one for Y
+    drop_na(r) %>% # remove missing values
+    dplyr::rename(agreement = r) %>% # calls the raw correlation "agreement"
+    dplyr::mutate(logic = abs(agreement)) %>% # BS structure/logic similarity by taking absolute value
+    dplyr::select(x, y, agreement, logic) # selects key columns. X and Y will have the participant IDs
+  
+  
+  allsimdata <- as.data.frame(attitude_compare)
+  allsimdata$content.sim <- colMeans(abs(transposed_supp[ , allsimdata[,1] ] - transposed_supp[ , allsimdata[,2] ] ),  na.rm = TRUE)
+  allsimdata <- cbind(country= get_labels(dat_select$country)[i], allsimdata)
+  
+  
+  looplist1[[i]] <- allsimdata
+  names(looplist1)[i] <- get_labels(dat_select$country)[i]
+
+  }
+	
+newdf <- bind_rows(looplist1, .id = NULL)
+
+# OK, so what do we want to see here?
+
+	head(newdf)
+	
+	# senseable correlation values
+	hist(newdf$agreement) # can be negative
+	hist(newdf$logic) # cannot be negative
+	
+	# missingness not clearly patterned per country - result = no missingness at all.
+	table(newdf$country)
+	table(newdf$country,is.na(newdf$agreement))
+	table(newdf$country,is.na(newdf$logic))
 
 #write.csv(newdf,"Data/Main survey/allcountriesparties selected.csv", row.names = FALSE)
 
-# now organize output by party supported.
+# now organize output by party supported -- Tomas: Q: what is 'group' here? A: that is party_pref
+
+head(dat_select)
 
 allsimdata1 <- merge(x = newdf,  y = dat_select[ , c("id", "group")], by.x = "x", by.y = "id"  ,all.x=TRUE)
+head(allsimdata1)
+
 allsimdata2 <- merge(x = allsimdata1,  y = dat_select[ , c("id", "group")], by.x = "y", by.y = "id",all.x=TRUE)
+head(allsimdata2)
 
 # filter to selct only those who support a party in aff_pol1-4
 
@@ -158,9 +251,18 @@ finalsimdata1 <- allsimdata2 %>%
                                ingroup       = ifelse(group.x == group.y, "ingroup","outgroup")
                                                    
                                )
+							   
+head(finalsimdata1)
+
+# lets have a look at all combos with grepl('14$', finalsimdata1$match)
+
+table(finalsimdata1[which(grepl('14$', finalsimdata1$match)),]$match) # answer is yes, there are cross langauge matches.. why?!
 
 #mathcing party supporters pairings with aff_pol items so that only those who end with one of the options measured; select pps who pol_pref is the same as the aff-pol target e.g., aff_pol1 in UK = 100, so we select all that end with 100
-#BUT for belgium I do precise matches otherwsie french and belgium dutch pairings are offered
+#BUT for belgium I do precise matches otherwsie french and belgium dutch pairings are offered? Tomas: Q: is this true?,  let check above. A: yes this is true, the reason is that everybody in each country is compared with everybody, 
+# so also across the languages in BE, this while for party 14 for example, only the comparison with 13 and 15 is relevant - so that needs to be - as it is below - specified.
+# group.y is ones own party, group.y is the party of the other. We are here just specifying where to look! - when you get aff_pol_1 you should be in first row, I checked all these now manually, and expect for the same two Dutch parties. These are all as they should be.
+
 finalsimdata <- finalsimdata1 %>% 
                           mutate( target = ifelse(grepl('100$', finalsimdata1$match)|grepl('18$', finalsimdata1$match)|grepl('52$', finalsimdata1$match)|grepl('38$', finalsimdata1$match)|grepl('^14_14$', finalsimdata1$match)|grepl('^13_14$', finalsimdata1$match)|grepl('^15_14$', finalsimdata1$match)|grepl('57$', finalsimdata1$match)|grepl('^7_7$', finalsimdata1$match)|grepl('^5_7$', finalsimdata1$match)|grepl('^6_7$', finalsimdata1$match)|grepl('^8_7$', finalsimdata1$match)|grepl('70$', finalsimdata1$match)|grepl('82$', finalsimdata1$match),"aff_polarization_1",
                                                   ifelse(grepl('99$', finalsimdata1$match)|grepl('19$', finalsimdata1$match)|grepl('50$', finalsimdata1$match)|grepl('36$', finalsimdata1$match)|grepl('^13_13$', finalsimdata1$match)|grepl('^14_13$', finalsimdata1$match)|grepl('^15_13$', finalsimdata1$match)|grepl('58$', finalsimdata1$match)|grepl('^5_5$', finalsimdata1$match)|grepl('^7_5$', finalsimdata1$match)|grepl('^6_5$', finalsimdata1$match)|grepl('^8_5$', finalsimdata1$match)|grepl('65$', finalsimdata1$match)|grepl('83$', finalsimdata1$match),"aff_polarization_2",
@@ -172,11 +274,18 @@ finalsimdata <- finalsimdata1 %>%
 # now  make a variable that takes the pps mean over ingroup matches and outgroup matches
 
 logic <- aggregate(logic       ~x+target, mean, data = finalsimdata, na.action = na.omit)
+
 content <- aggregate(content.sim ~x+target, mean, data = finalsimdata, na.action = na.omit)
+head(content)
+
+table(is.na(content$content.sim)) # OK, so we still have them all here.
 
 logic_cont <- merge(logic, content, by = c('x','target'))
 logic_cont <- logic_cont %>% rename(  id = x,
-                                      contentdif = content.sim
+                                      contentdif = content.sim )
+
+head(logic_cont)
+table(is.na(logic_cont$contentdif)) # OK, and here
                                    ) 
 #write.csv(logic_cont,"Data/Main survey/logic_cont.csv", row.names = FALSE)
 #
@@ -198,15 +307,47 @@ logic_cont <- logic_cont %>% rename(  id = x,
 #  labs(fill="")
 #
 ################################### convert data to long format for MLM
-mlm.datv1 <- pivot_longer(dat_select, aff_polarization_1:aff_polarization_4,  names_to = "target", values_to = "aff.pol")
+mlm.datv1 <- pivot_longer(dat_select, aff_polarization_1:aff_polarization_4,  names_to = "target", values_to = "aff.pol") # so this is where we get the long data, one row for each version of aff_polarization_1-4
 mlm.datv1 <- mlm.datv1 %>% mutate(targetorig = target)
 mlm.datv1 <- as.data.frame(mlm.datv1)
 
+head(mlm.datv1) # long dataframe, one row per aff_polarization_1-4 value, for all but the belief system vars.
+head(logic_cont) # data frame that contains for each row the content and logic value with the specific party that in that country got this postion on the aff_polarization_1-4 position.
+
 #add content and structure variables in
-mlm.dat <- merge(mlm.datv1, logic_cont, by = c('id','target'), all.x = TRUE)
+mlm.dat <- merge(mlm.datv1, logic_cont, by = c('id','target'), all.x = TRUE) # Tomas: Q: does this merge make sense to me? A: Yes, it does, see row 318 and 319 for an explanation.
+
+head(mlm.dat)
+table(is.na(mlm.dat$contentdif)) # OK, here we lost 806 cases, look below for an explanation why.
+
+mlm.contmiss <- mlm.dat[which(is.na(mlm.dat$content)),]
+head(mlm.contmiss)
+
+# lets see, is there a value for all IDS in logic_cont?
+
+length(unique(logic_cont$id))
+length(unique(mlm.datv1$id)) # OK, so there are 7 more people here, but maybe also different ones?
+
+# one way
+logic_cont[which(!(logic_cont$id %in% mlm.datv1$id)),] # OK, so all in logic_cont are in mlm.datv1
+
+# the other way
+mlm.datv1[which(!(mlm.datv1$id %in% logic_cont$id)),] # but these cases are not in logic_cont - what all these cases have in common is that everbody scores exactly 
+													  # the same on all items. I think it is fair enough that these people are excluded.
+													  # we can consider mentioning that explicitly, but I think the specififcation of the variable construction implies this. 
+
+
+as.data.frame(mlm.dat)[0:20,]
+
+# Is assume we we get the same missingness on structure?
+
+table(is.na(mlm.dat$logic)) # yes, indeed
 
 #mutate recodea content similarity so that greater similarity is larger values, and same = 1, most different = 0
 # .c variables center
+
+# below, UKIP is mentioned again, but I think they are out of the data already because of size!
+# OK, so I don't understand for 100% yet that it makes sense how ingroup is constructed here.. 
 
 mlm.dat <- mlm.dat %>% mutate(affpoldummy   =ifelse(                                target == "aff_polarization_1"&(group ==100|group ==18|group ==52|group ==38|group ==14|group ==57|group ==7|group ==70|group ==82),"ingroup",
                                                     ifelse(                         target == "aff_polarization_2"&(group ==99| group ==19|group ==50|group ==36|group ==13|group ==58|group ==5|group ==65|group ==83),"ingroup", 
@@ -236,6 +377,22 @@ mlm.dat <- mlm.dat %>% mutate(content_c= mlm.dat$content-mean(mlm.dat$content,na
 
 #saveRDS(mlm.dat, file = "Data/Main survey/mlm.dat.s1new.Rda")
 #mlm.datloadtest <- readRDS("Data/Main survey/mlm.dat.s1new.Rda")
+
+## and some instructions on the final data
+
+hist(mlm.dat$content)
+table(is.na(mlm.dat$content)) # Q: what are these 806 cases? A: see linme 313-338, these are cases where the subjects answered the exact same value to all belief system items.
+
+
+
+mean(mlm.dat$content)
+hist(mlm.dat$content_c)
+
+hist(mlm.dat$logic)
+hist(mlm.dat$logic_c)
+
+
+
 
 ################################### descritpives
 
