@@ -64,6 +64,8 @@ dat_clean <- data       %>% mutate(country             = Country,
 
 	summary(dat_clean$econ_attitudes_1r)
 	hist(dat_clean$econ_attitudes_1r)
+	
+	labels(dat_clean$party_pref)
 
 
 ################################### select sample
@@ -153,6 +155,9 @@ dat_select <- dat_clean    %>%
 		# Socialistische Partij supporters = 69 # NOT included?! -- hmm, this really is what it says in the codebook #Tomas 
 		# Partij voor de Vrijheid supporters = 67 # NOT included?! -- hmm, this really is what it says in the codebook #Tomas
 		table(dat_select[which(dat_select$country == 6),]$group) # 4 parties included, but two of them seem incorrect? 68 (CDA) and 66 (D66)
+		
+		
+		
 	
 	# in Spain
 		# Spain: Partido Socialista Obrero Español - not listed?! - yes, they are but under NL - 82
