@@ -92,8 +92,8 @@ table(rowSums(is.na(dat_clean[,c("ideology", "econ_attitudes_1r", "econ_attitude
 dat_select <- dat_clean    %>% 
                           dplyr::filter(party_pref ==100|party_pref ==18|party_pref ==52|party_pref ==38|party_pref ==14|party_pref ==57|party_pref ==7|party_pref ==70|party_pref ==82|
                                         party_pref ==99 |party_pref ==19|party_pref ==50|party_pref ==36|party_pref ==13|party_pref ==58|party_pref ==5|party_pref ==65|party_pref ==83|
-                                        party_pref ==108|party_pref ==23|party_pref ==54|party_pref ==46|party_pref ==15|party_pref ==56|party_pref ==6|party_pref ==68|party_pref ==85|
-                                                         party_pref ==25|party_pref ==51|party_pref ==35|                party_pref ==62|party_pref ==8|party_pref ==66|party_pref ==84)     %>%             
+                                        party_pref ==108|party_pref ==23|party_pref ==54|party_pref ==46|party_pref ==15|party_pref ==56|party_pref ==6|party_pref ==69|party_pref ==85|
+                                                         party_pref ==25|party_pref ==51|party_pref ==35|                party_pref ==62|party_pref ==8|party_pref ==67|party_pref ==84)     %>%             
                                   dplyr::select(id, country,  
                                   econ_attitudes_1r, econ_attitudes_2r, econ_attitudes_3r,
                                   cult_attitudes_1r, cult_attitudes_2r, cult_attitudes_3r, 
@@ -154,11 +154,8 @@ dat_select <- dat_clean    %>%
 		# Volkspartij voor Vrijheid en Democratie = 65 # is included
 		# Socialistische Partij supporters = 69 # NOT included?! -- hmm, this really is what it says in the codebook #Tomas 
 		# Partij voor de Vrijheid supporters = 67 # NOT included?! -- hmm, this really is what it says in the codebook #Tomas
-		table(dat_select[which(dat_select$country == 6),]$group) # 4 parties included, but two of them seem incorrect? 68 (CDA) and 66 (D66)
+		table(dat_select[which(dat_select$country == 6),]$group) # NEW: matches the codebook I have now # OLD 4 parties included, but two of them seem incorrect? 68 (CDA) and 66 (D66)
 		
-		
-		
-	
 	# in Spain
 		# Spain: Partido Socialista Obrero Español - not listed?! - yes, they are but under NL - 82
 		# Spain: Partido Popular supporters - not listed?!  - yes, they are but under NL - 83
@@ -271,8 +268,8 @@ table(finalsimdata1[which(grepl('14$', finalsimdata1$match)),]$match) # answer i
 finalsimdata <- finalsimdata1 %>% 
                           mutate( target = ifelse(grepl('100$', finalsimdata1$match)|grepl('18$', finalsimdata1$match)|grepl('52$', finalsimdata1$match)|grepl('38$', finalsimdata1$match)|grepl('^14_14$', finalsimdata1$match)|grepl('^13_14$', finalsimdata1$match)|grepl('^15_14$', finalsimdata1$match)|grepl('57$', finalsimdata1$match)|grepl('^7_7$', finalsimdata1$match)|grepl('^5_7$', finalsimdata1$match)|grepl('^6_7$', finalsimdata1$match)|grepl('^8_7$', finalsimdata1$match)|grepl('70$', finalsimdata1$match)|grepl('82$', finalsimdata1$match),"aff_polarization_1",
                                                   ifelse(grepl('99$', finalsimdata1$match)|grepl('19$', finalsimdata1$match)|grepl('50$', finalsimdata1$match)|grepl('36$', finalsimdata1$match)|grepl('^13_13$', finalsimdata1$match)|grepl('^14_13$', finalsimdata1$match)|grepl('^15_13$', finalsimdata1$match)|grepl('58$', finalsimdata1$match)|grepl('^5_5$', finalsimdata1$match)|grepl('^7_5$', finalsimdata1$match)|grepl('^6_5$', finalsimdata1$match)|grepl('^8_5$', finalsimdata1$match)|grepl('65$', finalsimdata1$match)|grepl('83$', finalsimdata1$match),"aff_polarization_2",
-                                                         ifelse(grepl('108$', finalsimdata1$match)|grepl('23$', finalsimdata1$match)|grepl('54$', finalsimdata1$match)|grepl('46$', finalsimdata1$match)|grepl('^15_15$', finalsimdata1$match)|grepl('^14_15$', finalsimdata1$match)|grepl('^13_15$', finalsimdata1$match)|grepl('56$', finalsimdata1$match)|grepl('^6_6$', finalsimdata1$match)|grepl('^7_6$', finalsimdata1$match)|grepl('^5_6$', finalsimdata1$match)|grepl('^8_6$', finalsimdata1$match)|grepl('68$', finalsimdata1$match)|grepl('85$', finalsimdata1$match),"aff_polarization_3",
-                                                                ifelse(grepl('25$', finalsimdata1$match)|grepl('51$', finalsimdata1$match)|grepl('35$', finalsimdata1$match)|grepl('62$', finalsimdata1$match)|grepl('^8_8$', finalsimdata1$match)|grepl('^7_8$', finalsimdata1$match)|grepl('^5_8$', finalsimdata1$match)|grepl('^6_8$', finalsimdata1$match)|grepl('66$', finalsimdata1$match)|grepl('84$', finalsimdata1$match),"aff_polarization_4",NA))))
+                                                         ifelse(grepl('108$', finalsimdata1$match)|grepl('23$', finalsimdata1$match)|grepl('54$', finalsimdata1$match)|grepl('46$', finalsimdata1$match)|grepl('^15_15$', finalsimdata1$match)|grepl('^14_15$', finalsimdata1$match)|grepl('^13_15$', finalsimdata1$match)|grepl('56$', finalsimdata1$match)|grepl('^6_6$', finalsimdata1$match)|grepl('^7_6$', finalsimdata1$match)|grepl('^5_6$', finalsimdata1$match)|grepl('^8_6$', finalsimdata1$match)|grepl('67$', finalsimdata1$match)|grepl('85$', finalsimdata1$match),"aff_polarization_3",
+                                                                ifelse(grepl('25$', finalsimdata1$match)|grepl('51$', finalsimdata1$match)|grepl('35$', finalsimdata1$match)|grepl('62$', finalsimdata1$match)|grepl('^8_8$', finalsimdata1$match)|grepl('^7_8$', finalsimdata1$match)|grepl('^5_8$', finalsimdata1$match)|grepl('^6_8$', finalsimdata1$match)|grepl('67$', finalsimdata1$match)|grepl('84$', finalsimdata1$match),"aff_polarization_4",NA))))
                                   
                           )
 
@@ -356,8 +353,8 @@ table(is.na(mlm.dat$logic)) # yes, indeed
 
 mlm.dat <- mlm.dat %>% mutate(affpoldummy   =ifelse(                                target == "aff_polarization_1"&(group ==100|group ==18|group ==52|group ==38|group ==14|group ==57|group ==7|group ==70|group ==82),"ingroup",
                                                     ifelse(                         target == "aff_polarization_2"&(group ==99| group ==19|group ==50|group ==36|group ==13|group ==58|group ==5|group ==65|group ==83),"ingroup", 
-                                                                ifelse(             target == "aff_polarization_3"&(group ==108|group ==23|group ==54|group ==46|group ==15|group ==56|group ==6|group ==68|group ==85),"ingroup",
-                                                                             ifelse(target == "aff_polarization_4"&(group ==102|group ==25|group ==51|group ==35|           group ==62|group ==8|group ==66|group ==84),"ingroup","outgroup")))),
+                                                                ifelse(             target == "aff_polarization_3"&(group ==108|group ==23|group ==54|group ==46|group ==15|group ==56|group ==6|group ==69|group ==85),"ingroup",
+                                                                             ifelse(target == "aff_polarization_4"&(group ==102|group ==25|group ==51|group ==35|           group ==62|group ==8|group ==67|group ==84),"ingroup","outgroup")))),
                               outgroupdummy.num = ifelse(affpoldummy == "ingroup",0,
                                                     ifelse(affpoldummy == "outgroup",1,NA)),
                               content     = 1-contentdif,
