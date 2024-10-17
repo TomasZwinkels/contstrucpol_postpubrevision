@@ -65,7 +65,11 @@ dat_clean <- data       %>% mutate(country             = Country,
 	summary(dat_clean$econ_attitudes_1r)
 	hist(dat_clean$econ_attitudes_1r)
 	
-	labels(dat_clean$party_pref)
+	table(dat_clean$party_pref)
+	table(dat_clean$party_vote)
+#	table(dat_clean$party_pref,dat_clean$party_vote)
+	
+	# so, what the deal with the labels.
 
 
 ################################### select sample
