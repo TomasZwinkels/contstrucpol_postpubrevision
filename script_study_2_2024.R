@@ -2,7 +2,7 @@
 
 	# List of required packages
 		packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
-					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer","parallel","doParallel","sqldf")
+					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer","parallel","doParallel","sqldf","sjPlot"))
 
 	# Function to install a package if it is missing
 		install_if_missing <- function(p) {
@@ -991,6 +991,16 @@ h1test_tomas_model_data[0:20,]
 write.csv(h1test_tomas_model_data, paste0("h1test_tomas_model_data_", timestamp, ".csv"), row.names = FALSE)
 
 
+# and a non centered version I can use for the graphs
+h1test_nc <- lmer(aff.pol ~  logic + content+ 
+                 outgroupdummy+
+                 logic*outgroupdummy + content*outgroupdummy + 
+                 countryelectiondummy+ partydummy+
+                 #                edu_c + age_c + inc_c +ethnicdummy+
+                 (1 | id), data=mlm.dat.fin)
+
+summary(h1test_nc) 
+
 				 
 table(mlm.dat.fin$country) # OK, so here we have all the countries again...  how?!
 
@@ -1258,3 +1268,91 @@ s1model1 <- ggplot(ssplotdata, aes(x = factor(coeff, level = level_order), y = E
 s1model1
 #dev.off()
 
+####################### making model objects that can be used to produce Figure 2 in the published paper
+
+	# the model to use!
+		m1 <- h1test_nc
+		summary(m1)
+	
+	# and producing the plots 
+	
+	# for logic
+	
+		# some info for setting a meaningfull x range		
+			rm(sdlogic)
+			sdlogic <- sd(mlm.dat.fin$logic,na.rm=TRUE)
+			sdlogic
+				
+			rm(meantouselogic)
+			meantouselogic <- round(mean(mlm.dat.fin$logic,na.rm=TRUE),1)
+			meantouselogic
+		
+		# plot
+			study2logic <- plot_model(m1,
+					type = "pred",
+					terms=c("logic [all]","outgroupdummy"),
+					colors = "bw",
+					line.size=1,
+					legend.title="Group") +
+					ylim(0,10) + 
+					# xlim(0-3*sdlogic,0+3*sdlogic) + # 3 standard deviations up and down
+					geom_histogram(data = mlm.dat.fin, inherit.aes = FALSE, # this bit is option, plots the distribution of x
+					aes(x = logic, y = ..count../3000),
+					fill = "gray85", colour = "gray50", alpha = 0.3,binwidth=0.01) +
+				#	geom_text(aes(x=meantouselogic,y=4.2,label=structure_slope_outgroup_astext),angle=0,color="black",size=5) +
+				#	geom_text(aes(x=meantouselogic,y=8,label=structure_slope_ingroup_astext),angle=0,color="black",size=5) +
+					theme_cowplot(16) +
+					xlab("Belief system structure similarity") +
+					ylab("Group liking") +
+					labs(title="C.") +#labs(title="Group liking predicted by structure - study 2") +
+						scale_x_continuous(
+							breaks = seq(round(meantouselogic-3*sdlogic,1), round(meantouselogic+3*sdlogic,1), by = 0.1),
+							limits=c(meantouselogic-3*sdlogic,meantouselogic+3*sdlogic)
+							) +
+						theme(legend.position = "none")
+				
+				study2logic
+			
+		# Save the plot
+			saveRDS(study2logic, "study2logic.rds")
+
+	# for content
+	
+		# some info for setting a meaningfull x range		
+			rm(sdcontent)
+			sdcontent <- sd(mlm.dat.fin$content,na.rm=TRUE)
+			sdcontent
+				
+			rm(meantousecontent)
+			meantousecontent <- round(mean(mlm.dat.fin$content,na.rm=TRUE),1)
+			meantousecontent
+	
+		# plot
+		study2content <- plot_model(m1,
+							type = "pred",
+							terms=c("content [all]","outgroupdummy"),
+							colors = "bw",
+							line.size=1,
+							legend.title="Group") +
+						ylim(0,10) +
+						#xlim(-0.75,0.25) + # for the whole theoretical range						
+						#xlim(meantousecontent-(3*sdcontent),meantousecontent+(3*sdcontent)) + # 3 standard deviations up and down
+						geom_histogram(data = mlm.dat.fin, inherit.aes = FALSE, # this bit is option, plots the distribution of x
+						aes(x = content, y = ..count../7000),
+						fill = "gray85", colour = "gray50", alpha = 0.3,binwidth=0.01) +
+				#		geom_text(aes(x=meantousecontent,y=3.5,label=content_slope_outgroup_astext),angle=0,color="black",size=5) +
+				#		geom_text(aes(x=meantousecontent,y=8,label=content_slope_ingroup_astext),angle=0,color="black",size=5) +
+						theme_cowplot(16) +
+						xlab("Belief system content similarity") +
+						ylab("") +#	ylab("Group liking") +
+					    labs(title="D.") + #	labs(title="Group liking predicted by content - study 2") +
+						scale_x_continuous(
+							breaks = seq(round(meantousecontent-3*sdcontent,1), round(meantousecontent+3*sdcontent,1), by = 0.1),
+							limits=c(meantousecontent-3*sdcontent,meantousecontent+3*sdcontent)
+							) +
+						theme(legend.position = "none")
+					
+				study2content
+	
+		# Save the plot
+			saveRDS(study2content, "study2content.rds")
