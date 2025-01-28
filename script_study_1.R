@@ -536,6 +536,7 @@ h1test_nc <- lmer(aff.pol ~  logic + content+
                  (1 | id), data=mlm.dat)
 
 summary(h1test_nc)
+AIC(h1test_nc)
 
 mlm.dat.testimport
 

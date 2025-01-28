@@ -2,7 +2,7 @@
 
 	# List of required packages
 		packages <- c("haven", "dplyr", "rio", "tidyverse", "corrr", "sjlabelled", 
-					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer","parallel","doParallel","sqldf","sjPlot"))
+					  "Rfast", "lme4", "lmerTest", "cowplot", "foreign", "emmeans","stargazer","parallel","doParallel","sqldf","sjPlot")
 
 	# Function to install a package if it is missing
 		install_if_missing <- function(p) {
@@ -1000,6 +1000,7 @@ h1test_nc <- lmer(aff.pol ~  logic + content+
                  (1 | id), data=mlm.dat.fin)
 
 summary(h1test_nc) 
+AIC(h1test_nc)
 
 				 
 table(mlm.dat.fin$country) # OK, so here we have all the countries again...  how?!
